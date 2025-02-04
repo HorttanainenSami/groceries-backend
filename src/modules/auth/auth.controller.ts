@@ -33,21 +33,19 @@ export const login = async (
   next: NextFunction
 ) => {
   try {
-    const initialUser = loginSchema.parse(req.body);
-    console.count('');
-    const user: User = await userApi.getUserByEmail(initialUser);
-    console.log(user);
+    console.log(req.body);
+    const initialUser = loginSchema.safeParse(req.body);
+    if(initialUser.error) return next(new AuthenticationError('Invalid credentials'));
+    const user: User = await userApi.getUserByEmail(initialUser.data);
     //same error message if email or pass is wrong for security
     if (
       user === null ||
-      !(await bcrypt.compare(initialUser.password, user.password))
+      !(await bcrypt.compare(initialUser.data.password, user.password))
     ) {
-      throw new AuthenticationError('Invalid credentials');
+      next(new AuthenticationError('Invalid credentials'));
     }
     const { email, id } = user;
-    console.count('');
     const token = jwt.sign({ email, id }, secret(), { expiresIn: '24h' });
-    console.count('');
     res.send({ token, email, id });
   } catch (err) {
     next(err);

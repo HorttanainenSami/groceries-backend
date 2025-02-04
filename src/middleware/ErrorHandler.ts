@@ -7,7 +7,6 @@ const ErrorHandler = (
   response: Response,
   next: NextFunction
 ) => {
-  console.log('in error handler. Error name: ', error.name);
   if (error.name === 'CastError') {
     console.error('Invalid ID format:', error);
     return response.status(400).json({ error: 'Invalid ID format' });

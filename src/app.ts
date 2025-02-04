@@ -3,6 +3,7 @@ import cors from 'cors';
 import { router as authRouter } from './modules/auth/auth.router';
 import { initializeTables } from './database/connection';
 import ErrorHandler  from './middleware/ErrorHandler';
+import requireAuth  from './middleware/requireAuth';
 import 'dotenv/config';
 
 const app: Express = express();
@@ -11,6 +12,7 @@ initializeTables();
 app.use(cors());
 app.use(express.json());
 app.use('', authRouter);
+app.use(requireAuth);
 app.use(ErrorHandler);
 app.listen(port, () => {
   return console.log(`Express is listening at http://localhost:${port}`);
