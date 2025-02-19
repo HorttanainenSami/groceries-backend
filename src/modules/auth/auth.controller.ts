@@ -20,10 +20,11 @@ export const register = async (
       ...initialUser,
       password: await bcrypt.hash(initialUser.password, 10),
     };
-    const user = await userApi.createUser(encryptedPasswordUser);
-    console.log(user);
+
+    const {password, ...user} = await userApi.createUser(encryptedPasswordUser);
     res.send(user);
   } catch (error) {
+    console.log(error);
     next(error);
   }
 };
