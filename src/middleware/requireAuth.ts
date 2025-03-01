@@ -5,6 +5,7 @@ import jwt, { TokenExpiredError } from 'jsonwebtoken';
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = req.headers['authorization'];
+  console.log('requireAuth');
   if (!token) {
     return res.status(403).send('Access Token Required');
   }
@@ -25,7 +26,7 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   } catch (err) {
     return next(err);
   }
-
+  console.log('token is valid');
   return next();
 }
 export default requireAuth;
