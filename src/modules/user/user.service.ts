@@ -1,20 +1,23 @@
 import { query } from '../../database/connection';
-import {AuthenticationError} from '../../middleware/Error.types';
 import { userSchema } from '../auth/auth.schema';
-import {searchType} from './user.schema';
+import { searchType } from './user.schema';
+import { DatabaseError as pgError} from 'pg';
+import { DatabaseError } from '../../middleware/Error.types';
 
 
-export const getUsersByParams = async ( params : searchType) => {
-  console.log('inGetUsersByParams: ', params);
-  const q = await query(
-    `SELECT * FROM users WHERE name LIKE '%'|| $1 ||'%' ;`,
-    [params.name]
-  );
-  return userSchema.array().parse(q.rows).map(({name}) => ({name}));
-  
-};
-
-export const makeFriends = async ( params : string) => {
-  console.log('inGetUsersByParams: ', params);
-  //TODO ensure that user_id is smaller than friend_id when searhing from database
+export const getUsersByParams = async (params: searchType) => {
+  try{
+    console.log('inGetUsersByParams: ', params);
+    const q = await query(
+      `SELECT * FROM users WHERE name LIKE '%'|| $1 ||'%' ;`,
+      [params.name]
+    );
+    return userSchema.array().parse(q.rows).map(({ name, id }) => ({ name, id }));
+  } catch (error) {
+    if (error instanceof pgError) {
+      console.error('Error fetching users:', error);
+      throw new DatabaseError('Failed to fetch users',error);
+    }
+    throw error;
+  }
 };

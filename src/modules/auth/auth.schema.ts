@@ -10,12 +10,14 @@ export const loginSchema = z.object({
 });
 
 export const userSchema = z.object({
-  name: z.string().optional().nullable(),
+  name: z.string(),
   email: z.string(),
   password: z.string(),
-  id: z.number(),
+  id: z.string().uuid(),
 });
 export const newUserSchema = userSchema.pick({
   email: true,
   password: true,
+  name:true,
 });
+export type newUserType = z.infer<typeof newUserSchema>;

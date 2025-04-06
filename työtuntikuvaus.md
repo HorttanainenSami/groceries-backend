@@ -1,3 +1,4 @@
+6.4.25 3h Error luokkien luominen ja errorien try catching
 27.2.25 1h30min käyttäjien etsiminen tietokannasta apia käyttäen
 Error handler ja tokenin vaatiminen 3h
 pysyväistallennus 2h 

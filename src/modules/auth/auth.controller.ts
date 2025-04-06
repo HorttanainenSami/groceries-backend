@@ -3,9 +3,9 @@ import userApi from './auth.service';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { secret } from '../../resources/utils';
-import { userSchema, loginSchema, newUserSchema } from './auth.schema';
+import { loginSchema, newUserSchema } from './auth.schema';
 import {AuthenticationError} from '../../middleware/Error.types';
-import { User, NewUser } from '../../types';
+import { User } from '../../types';
 
 
 export const register = async (
