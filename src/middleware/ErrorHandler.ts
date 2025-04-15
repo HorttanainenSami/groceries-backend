@@ -6,7 +6,8 @@ import {
   ResourceNotFoundError,
   TokenExpiredError,
   JsonWebTokenError,
-  DatabaseError
+  DatabaseError,
+  AuthorizationError
 } from './Error.types';
 import { DatabaseError as dbError } from 'pg';
 
@@ -38,8 +39,12 @@ const ErrorHandler = (
   } else if (error instanceof TokenExpiredError) {
     console.error('Token expired:', error);
     return response.status(error.statusCode || 401).json({ error: `Token has expired at ${error.token_error.expiredAt}` });
-  } else if (error instanceof Error) {
-    console.error('Unexpected error:', error.message);
+  } else if( error instanceof AuthorizationError) {
+    console.error('Authentication error:', error);
+    return response.status(error.statusCode || 401).json({ error: error.message });
+    
+  }else if (error instanceof Error) {
+    console.error('Unexpected error:', error.message, error.stack);
     return response.status(500).json({ error: 'Internal server error' });
   } 
 };
