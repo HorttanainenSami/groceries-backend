@@ -4,7 +4,8 @@ import { router as authRouter } from './modules/auth/auth.router';
 import { initializeTables } from './database/connection';
 import ErrorHandler  from './middleware/ErrorHandler';
 import requireAuth  from './middleware/requireAuth';
-import {router as user} from './modules/user/user.router';
+import {router as userRouter} from './modules/user/user.router';
+import { router as relationRouter } from './modules/relations/relations.router';
 import 'dotenv/config';
 
 const app: Express = express();
@@ -14,7 +15,8 @@ app.use(cors());
 app.use(express.json());
 app.use('', authRouter);
 app.use(requireAuth);
-app.use('/user', user);
+app.use('/user', userRouter);
+app.use('/relations', relationRouter);
 app.use(ErrorHandler);
 app.listen(port, () => {
   return console.log(`Express is listening at http://localhost:${port}`);

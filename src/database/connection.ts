@@ -51,8 +51,9 @@ const createTaskRelationsList = `
   CREATE TABLE IF NOT EXISTS Task_relation(
     "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4() ,
     "name" VARCHAR NOT NULL,
-    "created_at" TEXT NOT NULL
-    );
+    "created_at" TEXT NOT NULL,
+    "relation_location" VARCHAR CHECK(relation_location IN ('Server')) DEFAULT 'Server'
+  );
 `
 const createTaskList = `
   CREATE TABLE IF NOT EXISTS TASK(
