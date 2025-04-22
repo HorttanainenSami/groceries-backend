@@ -1,6 +1,26 @@
 version: '3.8'
 services:
-  postgres:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend-container
+    ports:
+      - 8000:3003
+    environment:
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      SECRET: ${SECRET}
+
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - groceries-app
+  db:
     image: postgres:17
     container_name: postgres-container
     ports:
@@ -14,6 +34,10 @@ services:
       - postgres-data:/var/lib/postgresql/data 
       - ./src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
     restart: always 
+    networks:
+      - groceries-app
 
+networks:
+  groceries-app:
 volumes:
   postgres-data:
