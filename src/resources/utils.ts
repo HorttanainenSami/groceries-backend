@@ -10,11 +10,16 @@ export const secret = () => {
   return env;
 };
 export const getTokenFrom = (req: Request) => {
-  const authorization = req.headers.authorization;
-  if (authorization && authorization.startsWith('Bearer ')) {
+  try { 
+    const authorization = req.headers.authorization;
+    if (!authorization || !authorization.startsWith('Bearer ')) {
+      throw new JsonWebTokenError('Token required');
+    }
     return authorization.replace('Bearer ', '');
+
+  } catch(e) {
+    throw new JsonWebTokenError('Token required');
   }
-  throw new JsonWebTokenError('Token required');
 };
 export function decodeToken(request: Request) {
   try {

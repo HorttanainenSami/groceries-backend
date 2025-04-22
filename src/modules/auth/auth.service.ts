@@ -14,13 +14,11 @@ const createUser = async (user: newUserType): Promise<User> => {
       'INSERT INTO users (email, password, name ) values ($1, $2, $3) RETURNING *;',
       [user.email, user.password, user.name]
     );
-    if (q.rowCount === 0) {
-      throw new Error('user already exists');
-    }
     return userSchema.parse(q.rows[0]);
   } catch (error) {
     if (error instanceof pgError) {
-      console.error('Error creating user:', error);
+      console.log('Error creating user:', error);
+      throw new DatabaseError('Failed to create user', error);
     }
     throw error;
   }
@@ -38,7 +36,7 @@ const getUserByEmail = async (user: IUserLogin): Promise<User> => {
     return userSchema.parse(q.rows[0]);
   } catch (error) {
     if (error instanceof pgError) {
-      console.error('Error fetching user:', error);
+      console.log('Error fetching user:', error);
       throw new DatabaseError('Failed to fetch user', error);
     }
     throw error;
