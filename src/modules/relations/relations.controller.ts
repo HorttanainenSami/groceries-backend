@@ -25,14 +25,14 @@ export const postRelationAndShareWithUser = async (
     
     //push relations to server
       console.log('pushing relations to server');
-      const promise = await createTaskRelationWithTasks(parsed_relations[0], { id });
+      const promise = await Promise.all(parsed_relations.map(relation => createTaskRelationWithTasks(relation, { id })));
       console.log('pushing relations to server successfully');
       
       //share relation with user
       console.log('sharing relation with user');
-      await addRelationCollaborator({ id:parsed_user.id }, { id: promise.id }, { permission: 'edit'});
+      await Promise.all(promise.map((newRelations) => addRelationCollaborator({ id:parsed_user.id }, { id:newRelations.id }, { permission: 'edit'})));
       console.log('sharing relation with user successfully');
-    //push tasks to relations
+      //push tasks to relations
       res.send(promise);
     }
     catch(e) {
