@@ -1,10 +1,10 @@
-import {query} from '../../../../src/database/connection';
-import {AuthenticationError, DatabaseError } from '../../../../src/middleware/Error.types';
-import AuthService from '../../../../src/modules/auth/auth.service';
+import {query} from '../../../../database/connection';
+import {AuthenticationError, DatabaseError } from '../../../../middleware/Error.types';
+import AuthService from '../../../../modules/auth/auth.service';
 import {DatabaseError as pgError} from 'pg';
 import bcrypt from 'bcrypt';
 
-jest.mock('../../../../src/database/connection')
+jest.mock('../../../../database/connection')
 jest.mock('bcrypt');
 
 describe('AuthService', () => {

@@ -1,5 +1,5 @@
 import z from 'zod';
-export const loginSchema = z.object({
+export const loginReqBodySchema = z.object({
   email: z
     .string({
       required_error: 'Email is required',
@@ -15,9 +15,10 @@ export const userSchema = z.object({
   password: z.string(),
   id: z.string().uuid(),
 });
-export const newUserSchema = userSchema.pick({
+export const registerReqBodySchema = userSchema.pick({
   email: true,
   password: true,
   name:true,
 });
-export type newUserType = z.infer<typeof newUserSchema>;
+export type newUserType = z.infer<typeof registerReqBodySchema>;
+

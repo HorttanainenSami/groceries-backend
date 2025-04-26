@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import requireAuth from '../../../src/middleware/requireAuth';
+import requireAuth from '../../../middleware/requireAuth';
 import jwt from 'jsonwebtoken';
-import { AuthorizationError, TokenExpiredError } from '../../../src/middleware/Error.types';
-import { secret } from '../../../src/resources/utils';
+import { AuthorizationError, TokenExpiredError } from '../../../middleware/Error.types';
+import { secret } from '../../../resources/utils';
 
 jest.mock('jsonwebtoken');
-jest.mock('../../../src/resources/utils', () => ({
+jest.mock('../../../resources/utils', () => ({
   secret: jest.fn(() => 'test-secret'),
   getTokenFrom: jest.fn((req: Request) => req.headers['authorization']?.split(' ')[1]),
 }));

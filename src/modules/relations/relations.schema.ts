@@ -1,4 +1,5 @@
 import z from 'zod';
+import { userSchema } from '../auth/auth.schema';
 
 export const NewTaskSchema = z.object({
   text: z.string(),
@@ -81,3 +82,30 @@ export const editTaskQuerySchema = z.object({
   });
 
 export type EditTaskQueryType = z.infer<typeof editTaskQuerySchema>;
+
+export const postRelationAndShareWithUserRequestSchema = z.object({
+  task_relations: LocalTaskRelationSchema.array(),
+  user_shared_with: userSchema.pick({id:true}).shape.id
+})
+
+export const postTaskToRelationReqSchema = z.object({
+  task: NewTaskSchema
+});
+
+export const shareRelationWithUserReqSchema = z.object({
+  task_relations_id: TaskRelationSchema.pick({ id: true }).shape.id,
+  user_id: userSchema.pick({ id: true }).shape.id,
+})
+export const editRelationsTaskByIdReqParamsSchema = z.object({
+  relation_id: TaskRelationSchema.pick({ id: true }).shape.id,
+  task_id: TaskSchema.pick({ id: true }).shape.id
+});
+export const editRelationsTaskByIdReqBodySchema = TaskSchema.omit({ id: true });
+
+export const removeTaskFromRelationReqParams = z.object({
+  relation_id: TaskRelationSchema.pick({id: true}).shape.id, 
+  task_id: TaskSchema.pick({id:true}).shape.id
+})
+export const getRelationsByIdReqParams = z.object({
+  relation_id: TaskRelationSchema.pick({id: true}).shape.id
+})

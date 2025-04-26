@@ -1,15 +1,15 @@
-import { register, login } from '../../../../src/modules/auth/auth.controller';
-import userApi from '../../../../src/modules/auth/auth.service';
+import { register, login } from '../../../../modules/auth/auth.controller';
+import userApi from '../../../../modules/auth/auth.service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { secret } from '../../../../src/resources/utils';
-import { AuthenticationError } from '../../../../src/middleware/Error.types';
+import { secret } from '../../../../resources/utils';
+import { AuthenticationError } from '../../../../middleware/Error.types';
 import { Request, Response, NextFunction } from 'express';
 
-jest.mock('../../../../src/modules/auth/auth.service');
+jest.mock('../../../../modules/auth/auth.service');
 jest.mock('bcrypt');
 jest.mock('jsonwebtoken');
-jest.mock('../../../../src/resources/utils', () => ({
+jest.mock('../../../../resources/utils', () => ({
   secret: jest.fn(() => 'test-secret'),
 }));
 
@@ -22,6 +22,7 @@ describe('Auth Controller', () => {
     req = {};
     res = {
       send: jest.fn(),
+      
     };
     next = jest.fn();
   });

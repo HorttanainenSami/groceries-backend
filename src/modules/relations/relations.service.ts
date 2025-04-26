@@ -9,6 +9,7 @@ import { z } from 'zod';
 export const createTaskRelationWithTasks = async (relation: LocalTaskRelationType, owner: Pick<User, 'id'>) => {
     //need to generate new id because locally generated can allready be in use. lets make uuid so locally generated serial id and backend generated ids cannot collide
     try {
+      
       const create_relation_query = await query<CreatedRelationType>(`
             INSERT INTO Task_relation( name, created_at)
             values ($1,$2) RETURNING *;
@@ -63,13 +64,10 @@ export const createTaskRelationWithTasks = async (relation: LocalTaskRelationTyp
       return q.rows[0];
     } catch (error) {
       if(error instanceof ApplicationError) {
-        console.error('Application error:', error);
         throw error; // Rethrow the error to be handled by the caller
       }else if (error instanceof pgError) {
-        console.error('Database error:', error);
         throw new DatabaseError('Failed to create task', error);
       }
-      console.error('Error creating task:', error);
       throw error;
     }
   };
@@ -112,7 +110,7 @@ export const createTaskRelationWithTasks = async (relation: LocalTaskRelationTyp
   };
   export const removeTask = async (task_id: Pick<TaskType, 'id'>) => {
     try {
-      const q = await query(`
+      const q = await query<TaskType>(`
         DELETE FROM Task WHERE id = $1 RETURNING *;
       `, [task_id.id]);
       return q.rows[0];

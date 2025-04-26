@@ -1,7 +1,7 @@
 import pg, { QueryResult } from 'pg';
 import 'dotenv/config';
 const { Pool } = pg;
-const port = parseInt(process.env.DATABASE_PORT || '', 10) || 5432;
+const port = parseInt(process.env.DATABASE_PORT ?? '5432');
 const pool = new Pool({
   host: process.env.DATABASE_HOST,
   database: process.env.DATABASE_NAME,

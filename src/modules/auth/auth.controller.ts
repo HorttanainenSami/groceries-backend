@@ -3,7 +3,7 @@ import userApi from './auth.service';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { secret } from '../../resources/utils';
-import { loginSchema, newUserSchema } from './auth.schema';
+import { loginReqBodySchema, registerReqBodySchema,  } from './auth.schema';
 import {AuthenticationError} from '../../middleware/Error.types';
 import { User } from '../../types';
 
@@ -14,8 +14,7 @@ export const register = async (
   next: NextFunction
 ) => {
   try {
-    console.log(req.body);
-    const initialUser = newUserSchema.parse(req.body);
+    const initialUser = registerReqBodySchema.parse(req.body);
     const encryptedPasswordUser = {
       ...initialUser,
       password: await bcrypt.hash(initialUser.password, 10),
@@ -35,7 +34,7 @@ export const login = async (
 ) => {
   try {
     console.log(req.body);
-    const initialUser = loginSchema.safeParse(req.body);
+    const initialUser = loginReqBodySchema.safeParse(req.body);
     if(initialUser.error) return next(new AuthenticationError('Invalid credentials'));
     const user: User = await userApi.getUserByEmail(initialUser.data);
     //same error message if email or pass is wrong for security

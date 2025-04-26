@@ -1,4 +1,4 @@
-import { getTokenFrom } from '../../../src/resources/utils';
+import { getTokenFrom } from '../../../resources/utils';
 import { JsonWebTokenError } from 'jsonwebtoken';
 
 type MockedRequest = {

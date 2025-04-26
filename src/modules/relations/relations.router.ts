@@ -8,8 +8,8 @@ router.post('/share', postRelationAndShareWithUser);
 //get all users relations by token
 router.get('', getRelations);
 //get relation by id
-router.get('/:id', getRelationById);
+router.get('/:relation_id', getRelationById);
 //create new task to relation
 router.post(`/:relation_id/tasks`, postTaskToRelation);
-router.patch(`/:relation_id/tasks/:id`, editRelationsTaskById);
-router.delete(`/:relation_id/tasks/:id`, removeTaskFromRelation);
+router.patch(`/:relation_id/tasks/:task_id`, editRelationsTaskById);
+router.delete(`/:relation_id/tasks/:task_id`, removeTaskFromRelation);
