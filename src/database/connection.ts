@@ -2,7 +2,7 @@ import pg, { QueryResult } from 'pg';
 import path from 'path';
 import dotenv from 'dotenv';
 
-const env_file = process.env.NODE_ENV === 'prod' ? '.env.prod': '.env.dev';
+const env_file = `.env.${process.env.NODE_ENV}`;
 dotenv.config({path: path.resolve(__dirname, `../../${env_file}`)});
 
 const { Pool } = pg;
@@ -17,7 +17,7 @@ const poolConfig = {
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 }
-console.log(poolConfig);
+console.log(poolConfig, env_file);
 const pool = new Pool(poolConfig);
 
 pool.on('error', (error, client) =>

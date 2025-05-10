@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  test_db:
+    image: postgres:17
+    container_name: postgres-groceries_test
+    ports:
+      - 5434:5432
+    env_file:
+      - .env.test
+    tmpfs:
+      - /var/lib/postgresql/data 
+    volumes:
+      - ./src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+ 
+    
+
