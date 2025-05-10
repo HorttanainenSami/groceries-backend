@@ -1,8 +1,13 @@
 import pg, { QueryResult } from 'pg';
-import 'dotenv/config';
+import path from 'path';
+import dotenv from 'dotenv';
+
+const env_file = process.env.NODE_ENV === 'prod' ? '.env.prod': '.env.dev';
+dotenv.config({path: path.resolve(__dirname, `../../${env_file}`)});
+
 const { Pool } = pg;
-const port = parseInt(process.env.DATABASE_PORT ?? '5432');
-const pool = new Pool({
+const port = parseInt(process.env.DATABASE_PORT ?? '5433');
+const poolConfig = {
   host: process.env.DATABASE_HOST,
   database: process.env.DATABASE_NAME,
   user: process.env.DATABASE_USER,
@@ -11,7 +16,9 @@ const pool = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
-});
+}
+console.log(poolConfig);
+const pool = new Pool(poolConfig);
 
 pool.on('error', (error, client) =>
   console.log('client: ', client, 'error: ', error)

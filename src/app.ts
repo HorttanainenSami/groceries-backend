@@ -5,7 +5,14 @@ import ErrorHandler  from './middleware/ErrorHandler';
 import requireAuth  from './middleware/requireAuth';
 import {router as userRouter} from './modules/user/user.router';
 import { router as relationRouter } from './modules/relations/relations.router';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+
+const env_file = process.env.NODE_ENV === 'prod' ? '.env.prod': '.env.dev';
+dotenv.config({path: path.resolve(__dirname, `../${env_file}`)});
+
+console.log(`Environment variables loaded from ${env_file}`)
+console.log(`ENV  ${process.env.DATABASE_PASSWORD} ${typeof process.env.DATABASE_PASSWORD}`)
 
 const app: Express = express();
 const port = 3003;

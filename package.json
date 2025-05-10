@@ -4,9 +4,10 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "dev": "nodemon src/app.ts",
+    "dev-sql": "docker-compose --env-file .env.dev up",
+    "dev": "NODE_ENV=dev nodemon src/app.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "NODE_ENV=prod node dist/app.js"
   },
   "keywords": [],
   "author": "",
