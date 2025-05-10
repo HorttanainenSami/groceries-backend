@@ -2,29 +2,27 @@
 import { query } from '../../database/connection';
 import { DatabaseError as pgError} from 'pg';
 import { ApplicationError, AuthorizationError, DatabaseError } from '../../middleware/Error.types';
-import { permissionSchema, LocalTaskRelationType, TaskRelationType, TaskType, PermissionType, CreatedRelationType, CreatedRelationSchema, editTaskQuerySchema } from './relations.schema';
+import { permissionSchema, TaskRelationType, TaskType, PermissionType,  newTaskSchema } from './relations.schema';
 import { User } from '../../types';
-import { z } from 'zod';
 
-export const createTaskRelationWithTasks = async (relation: LocalTaskRelationType, owner: Pick<User, 'id'>) => {
+export const createTaskRelationWithTasks = async (relation: TaskRelationType, owner: Pick<User, 'id'>) => {
     //need to generate new id because locally generated can allready be in use. lets make uuid so locally generated serial id and backend generated ids cannot collide
     try {
       
-      const create_relation_query = await query<CreatedRelationType>(`
+      const create_relation_query = await query<Omit<TaskRelationType, 'tasks'>>(`
             INSERT INTO Task_relation( name, created_at)
             values ($1,$2) RETURNING *;
           `, [relation.name, relation.created_at]
           );
     
-      const initialRelation = CreatedRelationSchema.parse(create_relation_query.rows[0]);
-
+      const initialRelation = create_relation_query.rows[0];
       await addRelationCollaborator({id: owner.id}, {id: initialRelation.id}, {permission: 'owner'});
       console.log('collaborator owner added');
 
       //link tasks to serverside relation id 
       const tasks = await Promise.all(
         relation.tasks.map(async task => {
-          return await createTaskForRelation({ ...task, task_relations_id: initialRelation.id})
+          return await createTaskForRelation(newTaskSchema.parse({...task,task_relations_id: initialRelation.id}))
         }
         
       ));
@@ -125,23 +123,13 @@ export const createTaskRelationWithTasks = async (relation: LocalTaskRelationTyp
   };
 
   
-  const allowedColumns = ['task', 'completed_at', 'completed_by'];
-  export const editTask = async (task: Partial<TaskType>) => {
-    if(task.id === undefined) throw new ApplicationError('Task id is required');
-    
+  export const editTask = async ({id, task, completed_at, completed_by}: Pick<TaskType, "completed_at"|"completed_by"|"task"|"id">) => {
     try {
-    const parsedTask = editTaskQuerySchema.parse(task);
-    const sanitizedTask = Object.fromEntries(Object.entries(parsedTask)
-      .filter(([key, value]: [string, unknown]) => allowedColumns.includes(key)));
-      console.log(sanitizedTask);
-    const sanitizedKeys = Object.keys(sanitizedTask)
-    .map((key, index) => `${key} = $${index + 2}`)
-    .join(', ');
-      const dynamic_query = `
-      UPDATE TASK SET ${sanitizedKeys} WHERE id = $1 RETURNING *;
+      const update_query = `
+      UPDATE TASK SET task=$2, completed_by=$3, completed_at=$4 WHERE id = $1 RETURNING *;
       `
-      console.log(dynamic_query, [...Object.values(sanitizedTask)]);
-      const q = await query<TaskType>(dynamic_query, [task.id, ...Object.values(sanitizedTask)]);
+      console.log(update_query, [id, task, completed_by, completed_at ]);
+      const q = await query<TaskType>(update_query, [id, task, completed_by, completed_at ]);
       console.log('query', q.rows[0]);
       return q.rows[0];
     } catch (error) {
@@ -153,8 +141,17 @@ export const createTaskRelationWithTasks = async (relation: LocalTaskRelationTyp
       throw error;
     }
   };
+  export const getTaskById = async ({task_id, relation_id}: {task_id: string, relation_id:string}) => {
+    try {
+      const q = await query<TaskType>('SELECT * from Task WHERE id=$1 AND task_relations_id=$2',[task_id, relation_id])
+      return q.rows[0];
+    }catch(e){
+      throw e;
+    }
+  }
   export const getAllRelations = async (user_id: Pick<User, 'id'>) => {
     try {
+      console.log(user_id);
       const q = await query<Omit<TaskRelationType, 'tasks'>>(`
         SELECT * FROM task_relation WHERE id IN (
           SELECT task_relation_id FROM task_permissions WHERE user_id = $1

@@ -22,15 +22,15 @@ CREATE TABLE IF NOT EXISTS FRIENDS(
 CREATE TABLE IF NOT EXISTS Task_relation(
     "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "name" VARCHAR NOT NULL,
-    "created_at" TEXT NOT NULL,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "relation_location" VARCHAR CHECK(relation_location IN ('Server')) DEFAULT 'Server'
 );
 
 CREATE TABLE IF NOT EXISTS TASK(
     "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "task" VARCHAR NOT NULL,
-    "created_at" TEXT NOT NULL,
-    "completed_at" TEXT,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "completed_at" TIMESTAMPTZ,
     "completed_by" UUID,
     "task_relations_id" UUID,
     FOREIGN KEY (task_relations_id) REFERENCES Task_relation(id),

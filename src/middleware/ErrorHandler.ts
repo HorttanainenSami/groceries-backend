@@ -10,6 +10,7 @@ import {
   AuthorizationError
 } from './Error.types';
 import { DatabaseError as dbError } from 'pg';
+import { ZodError } from 'zod';
 
 const ErrorHandler = (
   error: Error,
@@ -17,13 +18,16 @@ const ErrorHandler = (
   response: Response,
   next: NextFunction
 ) => {
+  console.log(error)
   if (error instanceof CastError) {
     console.error('Invalid ID format:', error);
     return response.status(error.statusCode || 400).json({ error: 'Invalid ID format' });
   } else if (error instanceof ValidationError ) {
-    console.error('Invalid data provided:', error.zodError.issues);
+    console.error('Invalid VALIDARTION ERROR data provided:', error.zodError.issues);
     return response.status(error.statusCode || 400).json({ error: 'Invalid data provided' });
-  } else if (error instanceof JsonWebTokenError) {
+  } else if (error instanceof ZodError ) {
+    return response.status(400).json({ error: 'Invalid data provided' });
+  }else if (error instanceof JsonWebTokenError) {
     console.error('Invalid token provided:', error);
     return response.status(error.statusCode || 400).json({ error: 'Invalid token provided' });
   } else if (error instanceof AuthenticationError) {
@@ -43,7 +47,7 @@ const ErrorHandler = (
     console.error('Authentication error:', error);
     return response.status(error.statusCode || 401).json({ error: error.message });
     
-  }else if (error instanceof Error) {
+  }else {
     console.error('Unexpected error:', error.message, error.stack);
     return response.status(500).json({ error: 'Internal server error' });
   } 

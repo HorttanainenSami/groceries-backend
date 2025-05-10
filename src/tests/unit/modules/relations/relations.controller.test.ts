@@ -3,7 +3,7 @@ import {
   postTaskToRelation,
   shareRelationWithUser,
   getRelationById,
-  editRelationsTaskById,
+  editTaskById,
   removeTaskFromRelation,
 } from '../../../../modules/relations/relations.controller';
 import * as relationsService from '../../../../modules/relations/relations.service';
@@ -11,7 +11,7 @@ import { decodeToken } from '../../../../resources/utils';
 import { AuthenticationError } from '../../../../middleware/Error.types';
 import { Request, Response, NextFunction } from 'express';
 import { createFixture } from 'zod-fixture';
-import { editRelationsTaskByIdReqBodySchema, editRelationsTaskByIdReqParamsSchema, LocalTaskRelationSchema, NewTaskSchema, TaskRelationSchema, TaskSchema } from '../../../../modules/relations/relations.schema';
+import { editRelationsTaskByIdReqBodySchema, editRelationsTaskByIdReqParamsSchema, TaskRelationSchema, TaskSchema } from '../../../../modules/relations/relations.schema';
 import { userSchema } from '../../../../modules/auth/auth.schema';
 jest.mock('../../../../modules/relations/relations.service');
 jest.mock('../../../../resources/utils');
@@ -37,14 +37,11 @@ describe('Relations Controller', () => {
   describe('postRelationAndShareWithUser', () => {
     it('should create relations and share them with a user', async () => {
       const user_mock = createFixture(userSchema.pick({id: true})).id;
-      const relation_mock = createFixture(LocalTaskRelationSchema.transform((data) => ({
-        ...data,
-        tasks: data.tasks.map(({task, ...rest}) => ({ ...rest, text: task })),
-      })));
-      
+      const relation_mock = createFixture(TaskRelationSchema);
+      const response_id = createFixture(TaskRelationSchema).id
       const response_mock = {
         ...relation_mock,
-          tasks: relation_mock.tasks.map(({text, ...rest}) => ({...rest, task: text}))
+        id: response_id,
         }
       req.body = {
         task_relations: [relation_mock],
@@ -55,7 +52,7 @@ describe('Relations Controller', () => {
 
       await postRelationAndShareWithUser(req as Request, res as Response, next as NextFunction);
       expect(relationsService.createTaskRelationWithTasks).toHaveBeenCalledWith(
-        response_mock,
+        relation_mock,
         owner_id
       );
       expect(relationsService.addRelationCollaborator).toHaveBeenCalledWith(
@@ -74,8 +71,7 @@ describe('Relations Controller', () => {
   });
   describe('postTaskToRelation', () => {
   
-    const new_task = createFixture(NewTaskSchema.transform(({task, ...rest}) => ({text: task, ...rest})));
-
+    const {id, ...new_task} = createFixture(TaskSchema);
     beforeEach(()=> {
       req.body ={
         task:new_task,
@@ -85,15 +81,9 @@ describe('Relations Controller', () => {
       jest.clearAllMocks();
     })
     it('should add a task to a relation', async () => {
-      const response_task = {
-        completed_at:new_task.completed_at,
-        completed_by: new_task.completed_by,
-        created_at: new_task.created_at,
-        task_relations_id: new_task.task_relations_id,
-        task: new_task.text,
-      };
+      const response_task = new_task;
       (relationsService.getUserPermission as jest.Mock).mockResolvedValue(true);
-      (relationsService.createTaskForRelation as jest.Mock).mockResolvedValue({ ...response_task, id: 'task-id' });
+      (relationsService.createTaskForRelation as jest.Mock).mockResolvedValue({ ...response_task, id});
 
       await postTaskToRelation(req as Request, res as Response, next as NextFunction);
 
@@ -103,7 +93,7 @@ describe('Relations Controller', () => {
       );
       expect(relationsService.createTaskForRelation).toHaveBeenCalledWith(response_task);
       
-      expect(res.send).toHaveBeenCalledWith({ ...response_task, id: 'task-id' });
+      expect(res.send).toHaveBeenCalledWith({ ...response_task, id });
       
     });
 
@@ -199,12 +189,12 @@ describe('shareRelationWithUser', () => {
     it('should return edited task', async () => {
       (relationsService.getUserPermission as jest.Mock).mockResolvedValue(true);
       (relationsService.editTask as jest.Mock).mockResolvedValue({test:'changed'});
-      await editRelationsTaskById(req as Request, res as Response, next as NextFunction);
+      await editTaskById(req as Request, res as Response, next as NextFunction);
       expect(res.send).toHaveBeenCalled();
     })
     it('should throw AuthenticationError if user doesnt have permission for relation', async () => {
       (relationsService.getUserPermission as jest.Mock).mockRejectedValue(authError);
-      await editRelationsTaskById(req as Request, res as Response, next as NextFunction);
+      await editTaskById(req as Request, res as Response, next as NextFunction);
 
       expect(next).toHaveBeenCalledWith(
         authError

@@ -1,7 +1,7 @@
 import { AuthenticationError } from '../../middleware/Error.types';
 import { NextFunction, Request, Response } from 'express';
-import { addRelationCollaborator, createTaskForRelation, createTaskRelationWithTasks, getRelationWithTasks, getUserPermission, getAllRelations, editTask, removeTask } from './relations.service';
-import { postRelationAndShareWithUserRequestSchema, NewTaskSchema, TaskRelationSchema, TaskSchema, postTaskToRelationReqSchema, shareRelationWithUserReqSchema, editRelationsTaskByIdReqParamsSchema, editRelationsTaskByIdReqBodySchema, getRelationsByIdReqParams, removeTaskFromRelationReqParams } from './relations.schema';
+import { addRelationCollaborator, createTaskForRelation, createTaskRelationWithTasks, getRelationWithTasks, getUserPermission, getAllRelations, editTask, removeTask, getTaskById } from './relations.service';
+import { postRelationAndShareWithUserRequestSchema, postTaskToRelationReqSchema, shareRelationWithUserReqSchema, editRelationsTaskByIdReqParamsSchema, editRelationsTaskByIdReqBodySchema, getRelationsByIdReqParams, removeTaskFromRelationReqParams, baseModifyTaskSchema, patchTaskSchema } from './relations.schema';
 import { decodeToken } from '../../resources/utils';
 
 export const postRelationAndShareWithUser = async (
@@ -16,7 +16,7 @@ export const postRelationAndShareWithUser = async (
 
       const { id } = decodeToken(req);
     
-      const promise = await Promise.all(task_relations.map(relation => createTaskRelationWithTasks(relation, { id })));
+      const promise = await Promise.all(task_relations.map(relation => createTaskRelationWithTasks({...relation, created_at: new Date()}, { id })));
       await Promise.all(promise.map((newRelations) => addRelationCollaborator({ id:user_shared_with }, { id:newRelations.id }, { permission: 'edit'})));
       res.send(promise);
     }
@@ -106,20 +106,24 @@ export const postRelationAndShareWithUser = async (
 
 // */
  
-  export const editRelationsTaskById = async (
+  export const editTaskById = async (
     req: Request,
     res: Response,
     next: NextFunction
   ) => {
     try{
+      console.log(req.body)
     const taskWithoutId = editRelationsTaskByIdReqBodySchema.parse(req.body)
     const { relation_id, task_id } = editRelationsTaskByIdReqParamsSchema.parse(req.params);
     const { id } = decodeToken(req);
-    const initialTask = {...taskWithoutId, task_relations_id: relation_id, id: task_id};
     //check if token owner is owner of relation
 
     await getUserPermission({ id }, { id: relation_id });
-    const response = await editTask(initialTask);
+    const serverTask = await getTaskById({task_id, relation_id});
+    console.log(serverTask, taskWithoutId)
+    const patchedTask = patchTaskSchema.parse({...taskWithoutId});
+
+    const response = await editTask({...serverTask, ...patchedTask});
     res.send(response);
     } catch(e) {
       console.log(e);
