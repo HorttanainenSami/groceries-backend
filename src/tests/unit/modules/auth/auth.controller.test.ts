@@ -2,7 +2,7 @@ import { register, login } from '../../../../modules/auth/auth.controller';
 import userApi from '../../../../modules/auth/auth.service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { secret } from '../../../../resources/utils';
+import { secret as _secret } from '../../../../resources/utils';
 import { AuthenticationError } from '../../../../middleware/Error.types';
 import { Request, Response, NextFunction } from 'express';
 

@@ -1,5 +1,6 @@
 import { getTokenFrom } from '../../../resources/utils';
 import { JsonWebTokenError } from 'jsonwebtoken';
+import { Request } from 'express';
 
 type MockedRequest = {
   headers?: { authorization?: string };
@@ -18,16 +19,16 @@ describe('utils', () => {
         authorization: 'Bearer test-token',
       };
 
-      const token = getTokenFrom(req as any);
+      const token = getTokenFrom(req as Request);
       expect(token).toBe('test-token');
     });
 
     it('should throw JsonWebTokenError if the authorization header is missing', () => {
       req.headers = {};
 
-      expect(() => getTokenFrom(req as any)).toThrow(
-				new JsonWebTokenError('Token required')
-			);
+      expect(() => getTokenFrom(req as Request)).toThrow(
+        new JsonWebTokenError('Token required')
+      );
     });
 
     it('should throw JsonWebTokenError if the authorization header is not a Bearer token', () => {
@@ -35,13 +36,15 @@ describe('utils', () => {
         authorization: 'Basic test-token',
       };
 
-      expect(() => getTokenFrom(req as any)).toThrow(
-				new JsonWebTokenError('Token required'));
+      expect(() => getTokenFrom(req as Request)).toThrow(
+        new JsonWebTokenError('Token required')
+      );
     });
 
     it('should throw JsonWebTokenError if the headers object is undefined', () => {
-			expect(() => getTokenFrom(req as any)).toThrow(
-				new JsonWebTokenError('Token required'));
+      expect(() => getTokenFrom(req as Request)).toThrow(
+        new JsonWebTokenError('Token required')
+      );
     });
 
     it('should throw JsonWebTokenError if the authorization header is undefined', () => {
@@ -49,8 +52,9 @@ describe('utils', () => {
         authorization: undefined,
       };
 
-      expect(() => getTokenFrom(req as any)).toThrow(
-				new JsonWebTokenError('Token required'));
+      expect(() => getTokenFrom(req as Request)).toThrow(
+        new JsonWebTokenError('Token required')
+      );
     });
   });
 });

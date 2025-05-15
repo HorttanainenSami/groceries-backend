@@ -1,3 +1,5 @@
+15.5.25 Testien tekeminen ja eslintin conffaaminen 6h
+11.5.25 Zod schemojen ja rajapinnan parantaminen 4h
 26.4.25 5h Testien tekeminen
 15.4.25 12h relations moduulin luominen ja CRUD endpointit. Listojen tallenntaminen postgressiin, listojen manipulointi postgressa.
 6.4.25 3h Error luokkien luominen ja errorien try catching

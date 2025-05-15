@@ -18,7 +18,7 @@ export const userSchema = z.object({
 export const registerReqBodySchema = userSchema.pick({
   email: true,
   password: true,
-  name:true,
+  name: true,
 });
 export type newUserType = z.infer<typeof registerReqBodySchema>;
-
+export type UserType = z.infer<typeof userSchema>;
