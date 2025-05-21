@@ -32,11 +32,9 @@ export const transactionClient = () => pool.connect();
 export default { query };
 export { pool };
 
-
-
-export function transactionQuery(client : pg.PoolClient): (typeof query) {
+export function transactionQuery(client: pg.PoolClient): typeof query {
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  return async function (text: string, params: any[])  {
+  return async function (text: string, params: any[]) {
     return await client.query(text, params);
   };
-};
+}

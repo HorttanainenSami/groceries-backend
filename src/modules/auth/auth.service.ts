@@ -1,5 +1,5 @@
 import { User, IUserLogin } from '../../types';
-import {AuthenticationError} from '../../middleware/Error.types';
+import { AuthenticationError } from '../../middleware/Error.types';
 import { userSchema, newUserType } from './auth.schema';
 import { query } from '../../database/connection';
 import bcrypt from 'bcrypt';
@@ -7,8 +7,7 @@ import { DatabaseError as pgError } from 'pg';
 import { DatabaseError } from '../../middleware/Error.types';
 
 const createUser = async (user: newUserType): Promise<User> => {
-  try{
-
+  try {
     console.log('createUser', user);
     const q = await query(
       'INSERT INTO users (email, password, name ) values ($1, $2, $3) RETURNING *;',
@@ -27,7 +26,7 @@ const getUserByEmail = async (user: IUserLogin): Promise<User> => {
   const loginError = () => {
     throw new AuthenticationError('Email and/or password is wrong!');
   };
-  try{
+  try {
     const q = await query('Select * from  users WHERE email=$1;', [user.email]);
     if (q.rowCount === 0) loginError();
     const password = q.rows[0].password;

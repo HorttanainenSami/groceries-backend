@@ -32,26 +32,25 @@ export const postRelationAndShareWithUser = async (
   next: NextFunction
 ) => {
   console.log('Hello from postRelationAndShareWithUser');
-const txQuery = transactionQuery(await transactionClient());
+  const txQuery = transactionQuery(await transactionClient());
   try {
-   
-    await txQuery('BEGIN',[]);
+    await txQuery('BEGIN', []);
     console.log(req.body);
     const { task_relations, user_shared_with } =
       postRelationAndShareWithUserRequestSchema.parse(req.body);
 
     const { id } = decodeToken(req);
 
-
     //create relations
     const initialRelations = await Promise.all(
       task_relations.map(async (relation) => {
-        const newRelation = await createTaskRelation({
-          ...relation,
-          created_at: new Date(),
-        },
-        txQuery
-      );
+        const newRelation = await createTaskRelation(
+          {
+            ...relation,
+            created_at: new Date(),
+          },
+          txQuery
+        );
         await grantRelationPermission(
           { id },
           { id: newRelation.id },
@@ -64,16 +63,13 @@ const txQuery = transactionQuery(await transactionClient());
           { permission: 'edit' },
           txQuery
         );
-        if(relation.tasks.length === 0) return newRelation;
+        if (relation.tasks.length === 0) return newRelation;
         const tasks = relation.tasks.map((task) => ({
           ...task,
           task_relations_id: newRelation.id,
         }));
-        await createTaskForRelation(
-         tasks,
-          txQuery
-        );
-        
+        await createTaskForRelation(tasks, txQuery);
+
         return newRelation;
       })
     );
@@ -83,7 +79,7 @@ const txQuery = transactionQuery(await transactionClient());
     res.send(initialRelations);
   } catch (e) {
     await txQuery('ROLLBACK', []);
-    console.log('ROLLING BACK ',e);
+    console.log('ROLLING BACK ', e);
     next(e);
   }
 };

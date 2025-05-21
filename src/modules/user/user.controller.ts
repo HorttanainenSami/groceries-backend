@@ -12,11 +12,10 @@ export const getUsersBySearchParams = async (
     const parsedQuery = searchSchema.safeParse(req.query);
     console.log(req.query);
     if (parsedQuery.error) return res.send(200);
-    const response = await getUsersByParams(parsedQuery.data)
+    const response = await getUsersByParams(parsedQuery.data);
     res.send(response);
   } catch (error) {
     console.log(error);
     next(error);
   }
 };
-

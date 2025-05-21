@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { getTokenFrom, secret } from '../resources/utils';
-import { AuthorizationError, TokenExpiredError } from '../middleware/Error.types';
+import {
+  AuthorizationError,
+  TokenExpiredError,
+} from '../middleware/Error.types';
 import { TokenDecoded } from '../types';
 import jwt from 'jsonwebtoken';
 
@@ -19,9 +22,7 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   } catch (err) {
     if (err instanceof Error && err.name === 'TokenExpiredError') {
       const date = new Date();
-      return next(
-        new TokenExpiredError('Error: token expired', date)
-      );
+      return next(new TokenExpiredError('Error: token expired', date));
     }
     return next(err);
   }
