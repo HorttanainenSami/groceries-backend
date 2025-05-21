@@ -10,6 +10,7 @@ import {
   editTask,
   removeTask,
   getTaskById,
+  removeRelation,
 } from './relations.service';
 import {
   postRelationAndShareWithUserRequestSchema,
@@ -20,8 +21,10 @@ import {
   getRelationsByIdReqParams,
   removeTaskFromRelationReqParams,
   patchTaskSchema,
+  deleteRelationParamsSchema,
 } from './relations.schema';
 import { decodeToken } from '../../resources/utils';
+import { transactionClient, transactionQuery } from '../../database/connection';
 
 export const postRelationAndShareWithUser = async (
   req: Request,
@@ -29,13 +32,16 @@ export const postRelationAndShareWithUser = async (
   next: NextFunction
 ) => {
   console.log('Hello from postRelationAndShareWithUser');
-
+const txQuery = transactionQuery(await transactionClient());
   try {
+   
+    await txQuery('BEGIN',[]);
     console.log(req.body);
     const { task_relations, user_shared_with } =
       postRelationAndShareWithUserRequestSchema.parse(req.body);
 
     const { id } = decodeToken(req);
+
 
     //create relations
     const initialRelations = await Promise.all(
@@ -43,30 +49,41 @@ export const postRelationAndShareWithUser = async (
         const newRelation = await createTaskRelation({
           ...relation,
           created_at: new Date(),
-        });
+        },
+        txQuery
+      );
         await grantRelationPermission(
           { id },
           { id: newRelation.id },
-          { permission: 'owner' }
+          { permission: 'owner' },
+          txQuery
         );
         await grantRelationPermission(
           { id: user_shared_with },
           { id: newRelation.id },
-          { permission: 'edit' }
+          { permission: 'edit' },
+          txQuery
         );
+        if(relation.tasks.length === 0) return newRelation;
+        const tasks = relation.tasks.map((task) => ({
+          ...task,
+          task_relations_id: newRelation.id,
+        }));
         await createTaskForRelation(
-          relation.tasks.map((task) => ({
-            ...task,
-            task_relations_id: newRelation.id,
-          }))
+         tasks,
+          txQuery
         );
+        
         return newRelation;
       })
     );
+    await txQuery('COMMIT', []);
+    console.log('COMMITED');
     //add collaboratiors for relations
     res.send(initialRelations);
   } catch (e) {
-    console.log(e);
+    await txQuery('ROLLBACK', []);
+    console.log('ROLLING BACK ',e);
     next(e);
   }
 };
@@ -206,6 +223,25 @@ export const removeTaskFromRelation = async (
     await getUserPermission({ id }, { id: relation_id });
     const relation = await removeTask({ id: task_id });
     res.send(relation);
+  } catch (e) {
+    console.log(e);
+    next(e);
+  }
+};
+
+export const removeRelationFromServer = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = decodeToken(req);
+    const { relation_id } = deleteRelationParamsSchema.parse(req.params);
+    await getUserPermission({ id }, { id: relation_id });
+    //remove relation
+    await removeRelation({ id: relation_id });
+
+    res.send('ok');
   } catch (e) {
     console.log(e);
     next(e);

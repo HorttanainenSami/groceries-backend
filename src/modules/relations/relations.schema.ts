@@ -114,3 +114,9 @@ export const getRelationByIdQueryResponseSchema = baseTaskSchema.extend({
 export type getRelationByIdQueryResponseType = z.infer<
   typeof getRelationByIdQueryResponseSchema
 >;
+export const deleteRelationParamsSchema = z.object({
+  relation_id: z.string().uuid(),
+});
+export type deleteRelationParamsType = z.infer<
+  typeof deleteRelationParamsSchema
+>;

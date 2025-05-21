@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS TASK(
     "completed_at" TIMESTAMPTZ,
     "completed_by" UUID,
     "task_relations_id" UUID,
-    FOREIGN KEY (task_relations_id) REFERENCES Task_relation(id),
+    FOREIGN KEY (task_relations_id) REFERENCES Task_relation(id) ON DELETE CASCADE,
     FOREIGN KEY (completed_by) REFERENCES Users(id)
 );
 

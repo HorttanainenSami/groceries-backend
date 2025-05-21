@@ -14,9 +14,12 @@ import {
 } from './relations.schema';
 import { User } from '../../types';
 
-export const createTaskRelation = async (relation: TaskRelationType) => {
+export const createTaskRelation = async (relation: TaskRelationType,queryOrTxQuery?: typeof query) => {
+  if(queryOrTxQuery === undefined) {
+    queryOrTxQuery = query;
+  }
   try {
-    const create_relation_query = await query<Omit<TaskRelationType, 'tasks'>>(
+    const create_relation_query = await queryOrTxQuery<Omit<TaskRelationType, 'tasks'>>(
       `
             INSERT INTO Task_relation( name, created_at)
             values ($1,$2) RETURNING *;
@@ -39,13 +42,17 @@ export const createTaskRelation = async (relation: TaskRelationType) => {
 };
 
 export const createTaskForRelation = async (
-  task: Omit<TaskType, 'id'> | Omit<TaskType, 'id'>[]
+  task: Omit<TaskType, 'id'> | Omit<TaskType, 'id'>[],
+  queryOrTxQuery?: typeof query
 ) => {
+  if(queryOrTxQuery === undefined) {
+    queryOrTxQuery = query;
+  }
   try {
     if (Array.isArray(task)) {
-      return createMultipleTaskForRelation(task);
+      return createMultipleTaskForRelation(task, queryOrTxQuery);
     } else {
-      return createSingleTaskForRelation(task);
+      return createSingleTaskForRelation(task, queryOrTxQuery);
     }
   } catch (error) {
     if (error instanceof ApplicationError) {
@@ -57,8 +64,12 @@ export const createTaskForRelation = async (
   }
 };
 export const createSingleTaskForRelation = async (
-  task: Omit<TaskType, 'id'>
+  task: Omit<TaskType, 'id'>,
+  queryOrTxQuery?: typeof query
 ) => {
+  if(queryOrTxQuery === undefined) {
+    queryOrTxQuery = query;
+  }
   const q = await query<TaskType>(
     `
       INSERT INTO Task (task, created_at, completed_at, completed_by, task_relations_id)
@@ -75,8 +86,12 @@ export const createSingleTaskForRelation = async (
   return q.rows[0];
 };
 export const createMultipleTaskForRelation = async (
-  task: Omit<TaskType, 'id'>[]
+  task: Omit<TaskType, 'id'>[],
+  queryOrTxQuery?: typeof query
 ) => {
+  if(queryOrTxQuery === undefined) {
+    queryOrTxQuery = query;
+  }
   const dynamicValues = task
     .map(
       (_, idx) =>
@@ -96,6 +111,7 @@ export const createMultipleTaskForRelation = async (
   );
   const queryString = `INSERT INTO Task (task, created_at, completed_at, completed_by, task_relations_id)
     values ${dynamicValues} RETURNING *;`;
+    console.log('queryString', queryString, dynamicValues, task);
   return (await query<TaskType>(queryString, dynamicParameters)).rows;
 };
 
@@ -295,8 +311,12 @@ export const getUserPermission = async (
 export const grantRelationPermission = async (
   user_id: Pick<User, 'id'>,
   task_relation_id: Pick<TaskRelationType, 'id'>,
-  permission: PermissionType
+  permission: PermissionType,
+  queryOrTxQuery?:typeof query,
 ) => {
+  if(queryOrTxQuery === undefined) {
+    queryOrTxQuery = query;
+  }
   try {
     console.log(
       'adding relation collaborator',
@@ -305,7 +325,7 @@ export const grantRelationPermission = async (
       permission
     );
 
-    const q = await query(
+    const q = await queryOrTxQuery(
       `
         INSERT INTO task_permissions (user_id, task_relation_id, permission)
         values ($1, $2, $3) RETURNING *;

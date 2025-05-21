@@ -1,5 +1,13 @@
 import express from 'express';
-import { editTaskById, getRelationById, getRelations, postRelationAndShareWithUser, postTaskToRelation, removeTaskFromRelation,  } from './relations.controller';
+import {
+  editTaskById,
+  getRelationById,
+  getRelations,
+  postRelationAndShareWithUser,
+  postTaskToRelation,
+  removeRelationFromServer,
+  removeTaskFromRelation,
+} from './relations.controller';
 
 export const router = express.Router();
 
@@ -10,6 +18,7 @@ router.get('', getRelations);
 //get relation by id
 router.get('/:relation_id', getRelationById);
 //create new task to relation
-router.post(`/:relation_id/tasks`, postTaskToRelation);
-router.patch(`/:relation_id/tasks/:task_id`, editTaskById);
-router.delete(`/:relation_id/tasks/:task_id`, removeTaskFromRelation);
+router.post('/:relation_id/tasks', postTaskToRelation);
+router.patch('/:relation_id/tasks/:task_id', editTaskById);
+router.delete('/:relation_id/tasks/:task_id', removeTaskFromRelation);
+router.delete('/:relation_id', removeRelationFromServer);
