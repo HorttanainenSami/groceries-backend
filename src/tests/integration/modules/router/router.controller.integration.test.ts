@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { decodeToken } from '../../../../resources/utils';
+import { decodeTokenFromRequest } from '../../../../resources/utils';
 import { jest } from '@jest/globals';
 import { app } from '../../../../app';
 import {
@@ -74,7 +74,7 @@ describe('POST /relations/share', () => {
   describe('authenticated user', () => {
     it('should throw error when not authenticated', async () => {
       // Mock decodeToken to simulate unauthenticated user
-      (decodeToken as jest.Mock).mockReturnValueOnce(null);
+      (decodeTokenFromRequest as jest.Mock).mockReturnValueOnce(null);
 
       const response = await request(app)
         .post('/relations/share')
@@ -145,7 +145,7 @@ describe('POST /relations/share', () => {
         tasks: tasks,
       };
       const token = jwt.sign(user_1, process.env.SECRET || 'secret');
-      (decodeToken as jest.Mock).mockReturnValueOnce({ id: user_1.id });
+      (decodeTokenFromRequest as jest.Mock).mockReturnValueOnce({ id: user_1.id });
 
       const response = await request(app)
         .post('/relations/share')
@@ -192,7 +192,7 @@ describe('POST /relations/share', () => {
         tasks: tasks,
       };
       const token = jwt.sign(user_1, process.env.SECRET || 'secret');
-      (decodeToken as jest.Mock).mockReturnValue(user_1.id);
+      (decodeTokenFromRequest as jest.Mock).mockReturnValue(user_1.id);
       const user_id_not_exist = '10000000-0000-0000-0000-000000000001';
 
       const response_1 = await request(app)
@@ -240,7 +240,7 @@ describe('GET /relations', () => {
   describe('authenticated user', () => {
     it('should throw error when not authenticated', async () => {
       // Mock decodeToken to simulate unauthenticated user
-      (decodeToken as jest.Mock).mockReturnValueOnce(null);
+      (decodeTokenFromRequest as jest.Mock).mockReturnValueOnce(null);
 
       const response = await request(app).get('/relations').send();
 
@@ -260,7 +260,7 @@ describe('GET /relations', () => {
     });
     it('should get all relations for the user', async () => {
       const token = jwt.sign(user_1, process.env.SECRET || 'secret');
-      (decodeToken as jest.Mock).mockReturnValue({ id: user_1.id });
+      (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id: user_1.id });
 
       const relations: TaskRelationType[] = [
         {

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { getTokenFrom, secret } from '../resources/utils';
+import { getTokenFrom, decodeTokenFromRequest } from '../resources/utils';
 import {
   AuthorizationError,
   TokenExpiredError,
@@ -15,9 +15,7 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
     return next(new AuthorizationError('Access Token Required'));
   }
   try {
-    const token = getTokenFrom(req);
-    const decodedToken = jwt.verify(token, secret()) as TokenDecoded;
-
+    const decodedToken = decodeTokenFromRequest(req);
     console.log('user id', decodedToken.id);
   } catch (err) {
     if (err instanceof Error && err.name === 'TokenExpiredError') {
@@ -30,4 +28,5 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
   console.log('connecting to ', req.url);
   return next();
 }
+
 export default requireAuth;

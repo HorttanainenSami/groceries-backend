@@ -1,13 +1,13 @@
 import {
   postRelationAndShareWithUser,
-  postTaskToRelation,
+  postTaskToRelationHandler,
   shareRelationWithUser,
   getRelationById,
-  editTaskById,
-  removeTaskFromRelation,
+  editTaskByIdHandler,
+  removeTaskFromRelationHandler,
 } from '../../../../modules/relations/relations.controller';
 import * as relationsService from '../../../../modules/relations/relations.service';
-import { decodeToken } from '../../../../resources/utils';
+import { decodeTokenFromRequest } from '../../../../resources/utils';
 import { AuthenticationError } from '../../../../middleware/Error.types';
 import { Request, Response, NextFunction } from 'express';
 import { createFixture } from 'zod-fixture';
@@ -38,7 +38,7 @@ describe('Relations Controller', () => {
     'User does not have permission to edit this list'
   );
   beforeEach(() => {
-    (decodeToken as jest.Mock).mockReturnValue(owner_id);
+    (decodeTokenFromRequest as jest.Mock).mockReturnValue(owner_id);
     req = {};
     res = {
       send: jest.fn(),
@@ -77,7 +77,7 @@ describe('Relations Controller', () => {
         id,
       });
 
-      await postTaskToRelation(
+      await postTaskToRelationHandler(
         req as Request,
         res as Response,
         next as NextFunction
@@ -98,7 +98,7 @@ describe('Relations Controller', () => {
       (relationsService.getUserPermission as jest.Mock).mockResolvedValue(
         false
       );
-      await postTaskToRelation(
+      await postTaskToRelationHandler(
         req as Request,
         res as Response,
         next as NextFunction
@@ -137,7 +137,7 @@ describe('Relations Controller', () => {
         next as NextFunction
       );
 
-      expect(decodeToken).toHaveBeenCalledWith(req);
+      expect(decodeTokenFromRequest).toHaveBeenCalledWith(req);
       expect(relationsService.getUserPermission).toHaveBeenCalledWith(
         { id: owner_id.id },
         { id: relations_id }
@@ -187,7 +187,7 @@ describe('Relations Controller', () => {
         next as NextFunction
       );
 
-      expect(decodeToken).toHaveBeenCalledWith(req);
+      expect(decodeTokenFromRequest).toHaveBeenCalledWith(req);
       expect(relationsService.getUserPermission).toHaveBeenCalledWith(
         { id: owner_id.id },
         { id: relation.id }
@@ -223,14 +223,14 @@ describe('Relations Controller', () => {
       (relationsService.editTask as jest.Mock).mockResolvedValue({
         test: 'changed',
       });
-      await editTaskById(req as Request, res as Response, next as NextFunction);
+      await editTaskByIdHandler(req as Request, res as Response, next as NextFunction);
       expect(res.send).toHaveBeenCalled();
     });
     it('should throw AuthenticationError if user doesnt have permission for relation', async () => {
       (relationsService.getUserPermission as jest.Mock).mockRejectedValue(
         authError
       );
-      await editTaskById(req as Request, res as Response, next as NextFunction);
+      await editTaskByIdHandler(req as Request, res as Response, next as NextFunction);
 
       expect(next).toHaveBeenCalledWith(authError);
     });
@@ -249,7 +249,7 @@ describe('Relations Controller', () => {
       (relationsService.removeTask as jest.Mock).mockResolvedValue({
         id: 'response',
       });
-      await removeTaskFromRelation(
+      await removeTaskFromRelationHandler(
         req as Request,
         res as Response,
         next as NextFunction
@@ -260,7 +260,7 @@ describe('Relations Controller', () => {
       (relationsService.getUserPermission as jest.Mock).mockRejectedValue(
         authError
       );
-      await removeTaskFromRelation(
+      await removeTaskFromRelationHandler(
         req as Request,
         res as Response,
         next as NextFunction

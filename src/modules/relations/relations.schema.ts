@@ -1,21 +1,30 @@
 import z from 'zod';
 import { userSchema } from '../auth/auth.schema';
 
+const parseDate = (arg: unknown) => {
+  if (typeof arg === 'string') {
+    const date = new Date(arg);
+    return isNaN(date.getTime()) ? undefined : date;
+  }
+  if (arg instanceof Date && !isNaN(arg.getTime())) return arg;
+  return undefined;
+};
+
+const parseNullableDate = (arg: unknown) => {
+  if (arg === null||arg ==='null') return null;
+  return parseDate(arg);
+};
+
 export const baseTaskSchema = z.object({
   id: z.string().uuid(),
   task: z.string(),
-  created_at: z.preprocess(
-    (arg) => (typeof arg === 'string' ? new Date(arg) : arg),
-    z.date(),
-    z.date()
-  ),
+  created_at: z.preprocess(parseDate, z.date()),
   completed_by: z.string().uuid().nullable(),
-  completed_at: z.preprocess(
-    (arg) => (typeof arg === 'string' ? new Date(arg) : arg),
-    z.date().nullable()
-  ),
+  completed_at: z.preprocess(parseNullableDate, z.date().nullable()),
   task_relations_id: z.string().uuid(),
 });
+
+
 export const TaskSchema = baseTaskSchema.refine(
   (data) => !(data.completed_at && !data.completed_by),
   {
@@ -26,7 +35,7 @@ export const TaskSchema = baseTaskSchema.refine(
 
 export const baseModifyTaskSchema = z
   .object({
-    completed_at: z.date().nullable().optional(),
+    completed_at: z.preprocess(parseNullableDate, z.date().nullable().optional()),
     completed_by: z.string().uuid().nullable().optional(),
     task: z.string().optional(),
   })

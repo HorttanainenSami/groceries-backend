@@ -22,8 +22,9 @@ import {
   removeTaskFromRelationReqParams,
   patchTaskSchema,
   deleteRelationParamsSchema,
+  TaskType,
 } from './relations.schema';
-import { decodeToken } from '../../resources/utils';
+import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
 
 export const postRelationAndShareWithUser = async (
@@ -39,7 +40,7 @@ export const postRelationAndShareWithUser = async (
     const { task_relations, user_shared_with } =
       postRelationAndShareWithUserRequestSchema.parse(req.body);
 
-    const { id } = decodeToken(req);
+    const { id } = decodeTokenFromRequest(req);
 
     //create relations
     const initialRelations = await Promise.all(
@@ -84,14 +85,26 @@ export const postRelationAndShareWithUser = async (
   }
 };
 
-export const postTaskToRelation = async (
+export const postTaskToRelationHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { task } = postTaskToRelationReqSchema.parse(req.body);
-    const { id } = decodeToken(req);
+    const { id } = decodeTokenFromRequest(req);
+    //check if user had permission to edit
+    const savedTask = postTaskToRelation(id, task);
+    res.send(savedTask);
+  } catch (e) {
+    next(e);
+  }
+};
+export const postTaskToRelation = async (
+  id: string,
+  task: Omit<TaskType, 'id'>
+) => {
+  try {
     //check if user had permission to edit
     const permission = await getUserPermission(
       { id },
@@ -104,9 +117,9 @@ export const postTaskToRelation = async (
 
     const promise = await createTaskForRelation(task);
     //send lists to server
-    res.send(promise);
+    return promise;
   } catch (e) {
-    next(e);
+    throw e;
   }
 };
 
@@ -120,7 +133,7 @@ export const shareRelationWithUser = async (
       req.body
     );
 
-    const { id } = decodeToken(req);
+    const { id } = decodeTokenFromRequest(req);
     //check if token owner is owner of relation
     const { permission } = await getUserPermission(
       { id },
@@ -152,7 +165,7 @@ export const getRelationById = async (
   try {
     const params = req.params;
     const { relation_id } = getRelationsByIdReqParams.parse(params);
-    const { id } = decodeToken(req);
+    const { id } = decodeTokenFromRequest(req);
     await getUserPermission({ id }, { id: relation_id });
     const relation = await getRelationWithTasks({ id: relation_id });
     res.send(relation);
@@ -166,7 +179,7 @@ export const getRelations = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = decodeToken(req);
+    const { id } = decodeTokenFromRequest(req);
     const relation = await getAllRelations({ id });
     res.send(relation);
   } catch (e) {
@@ -179,7 +192,7 @@ export const getRelations = async (
 
 // */
 
-export const editTaskById = async (
+export const editTaskByIdHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -190,15 +203,8 @@ export const editTaskById = async (
     const { relation_id, task_id } = editRelationsTaskByIdReqParamsSchema.parse(
       req.params
     );
-    const { id } = decodeToken(req);
-    //check if token owner is owner of relation
-
-    await getUserPermission({ id }, { id: relation_id });
-    const serverTask = await getTaskById({ task_id, relation_id });
-    console.log(serverTask, taskWithoutId);
-    const patchedTask = patchTaskSchema.parse({ ...taskWithoutId });
-
-    const response = await editTask({ ...serverTask, ...patchedTask });
+    const { id } = decodeTokenFromRequest(req);
+    const response = await editTaskBy(id, relation_id, task_id, taskWithoutId);
     res.send(response);
   } catch (e) {
     console.log(e);
@@ -206,7 +212,30 @@ export const editTaskById = async (
   }
 };
 
-export const removeTaskFromRelation = async (
+export const editTaskBy = async (
+  id: string,
+  relation_id: string,
+  task_id: string,
+  task_without_id: Partial<
+    Pick<TaskType, 'completed_by' | 'completed_at' | 'task'>
+  >
+) => {
+  try {
+    await getUserPermission({ id }, { id: relation_id });
+    console.log('relation_id', relation_id);
+    const serverTask = await getTaskById({ task_id, relation_id });
+    console.log('serverTask', serverTask);
+    const patchedTask = patchTaskSchema.parse({ ...task_without_id });
+    console.log('patchedTask', patchedTask);
+    const response = await editTask({ ...serverTask, ...patchedTask });
+    return response;
+  } catch (e) {
+    console.error('Error editing task:', e);
+    throw e;
+  }
+};
+
+export const removeTaskFromRelationHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -215,13 +244,27 @@ export const removeTaskFromRelation = async (
     const { relation_id, task_id } = removeTaskFromRelationReqParams.parse(
       req.params
     );
-    const { id } = decodeToken(req);
-    await getUserPermission({ id }, { id: relation_id });
-    const relation = await removeTask({ id: task_id });
-    res.send(relation);
+    const { id } = decodeTokenFromRequest(req);
+    const response = await removeTaskFromRelation(id, relation_id, task_id);
+    res.send(response);
   } catch (e) {
     console.log(e);
     next(e);
+  }
+};
+
+export const removeTaskFromRelation =  async (
+  id: string, 
+  relation_id: string,
+  task_id: string
+) => {
+  try {
+    await getUserPermission({ id }, { id: relation_id });
+    const relation = await removeTask({ id: task_id });
+    return relation;
+  } catch (e) {
+    console.log(e);
+    throw e;
   }
 };
 
@@ -231,7 +274,7 @@ export const removeRelationFromServer = async (
   next: NextFunction
 ) => {
   try {
-    const { id } = decodeToken(req);
+    const { id } = decodeTokenFromRequest(req);
     const { relation_id } = deleteRelationParamsSchema.parse(req.params);
     await getUserPermission({ id }, { id: relation_id });
     //remove relation
