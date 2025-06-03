@@ -11,6 +11,7 @@ import {
   TaskType,
   PermissionType,
   getRelationByIdQueryResponseType,
+  getRelationsType,
 } from './relations.schema';
 import { User } from '../../types';
 
@@ -259,12 +260,29 @@ export const getTaskById = async ({
 export const getAllRelations = async (user_id: Pick<User, 'id'>) => {
   try {
     console.log(user_id);
-    const q = await query<Omit<TaskRelationType, 'tasks'>>(
+    const q = await query<Omit<getRelationsType, 'tasks'>>(
       `
-        SELECT * FROM task_relation WHERE id IN (
-          SELECT task_relation_id FROM task_permissions WHERE user_id = $1
-        );
+      SELECT 
+        r.*, 
+        me.permission AS my_permission, 
+        users.id as shared_with_id,
+        users.name as shared_with_name,
+        users.email as shared_with_email
+      FROM task_relation r
+
+      LEFT JOIN task_permissions me 
+        ON me.task_relation_id = r.id 
+        AND me.user_id = $1
+
+      LEFT JOIN task_permissions other 
+        ON other.task_relation_id = r.id 
+        AND other.user_id != $1
+
+      LEFT JOIN users ON users.id=other.user_id
+      WHERE me.user_id IS NOT NULL;
+
       `,
+
       [user_id.id]
     );
     return q.rows;

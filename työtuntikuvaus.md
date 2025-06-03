@@ -1,3 +1,4 @@
+3.6.25 1h getRelations jakaa myös tiedon kenen kanssa lista on jaettu
 15.5.25 Testien tekeminen ja eslintin conffaaminen 6h
 11.5.25 Zod schemojen ja rajapinnan parantaminen 4h
 26.4.25 5h Testien tekeminen

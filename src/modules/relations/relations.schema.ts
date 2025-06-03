@@ -57,7 +57,7 @@ export const patchTaskSchema = baseModifyTaskSchema.transform((data) => {
   return { ...data };
 });
 
-export const TaskRelationSchema = z.object({
+export const TaskRelationsBasicSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   relation_location: z.string().default('Server'),
@@ -66,13 +66,22 @@ export const TaskRelationSchema = z.object({
     z.date(),
     z.date()
   ),
+})
+export const TaskRelationSchema = TaskRelationsBasicSchema.extend({
   tasks: TaskSchema.array(),
 });
 export const newTaskRelationSchema = TaskRelationSchema.transform((data) => ({
   ...data,
   created_at: new Date(),
 }));
-
+export const getRelationsSchema = TaskRelationsBasicSchema.extend({
+  my_permission: z.string(),
+  shared_with_id: z.string().uuid(),
+  shared_with_name: z.string(),
+  shared_with_email: z.string().email(),
+});
+  
+export type getRelationsType = z.infer<typeof getRelationsSchema>;
 export type TaskRelationType = z.infer<typeof TaskRelationSchema>;
 export type TaskType = z.infer<typeof TaskSchema>;
 
