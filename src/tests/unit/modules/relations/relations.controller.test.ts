@@ -2,7 +2,7 @@ import {
   postRelationAndShareWithUser,
   postTaskToRelationHandler,
   shareRelationWithUser,
-  getRelationById,
+  getRelationByIdHandler,
   editTaskByIdHandler,
   removeTaskFromRelationHandler,
 } from '../../../../modules/relations/relations.controller';
@@ -181,7 +181,7 @@ describe('Relations Controller', () => {
         relation
       );
 
-      await getRelationById(
+      await getRelationByIdHandler(
         req as Request,
         res as Response,
         next as NextFunction
@@ -201,7 +201,7 @@ describe('Relations Controller', () => {
       (relationsService.getUserPermission as jest.Mock).mockRejectedValue(
         authError
       );
-      await getRelationById(
+      await getRelationByIdHandler(
         req as Request,
         res as Response,
         next as NextFunction

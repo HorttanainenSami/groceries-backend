@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   editTaskByIdHandler,
-  getRelationById,
+  getRelationByIdHandler,
   getRelations,
   postRelationAndShareWithUser,
   postTaskToRelationHandler,
@@ -16,7 +16,7 @@ router.post('/share', postRelationAndShareWithUser);
 //get all users relations by token
 router.get('', getRelations);
 //get relation by id
-router.get('/:relation_id', getRelationById);
+router.get('/:relation_id', getRelationByIdHandler);
 //create new task to relation
 router.post('/:relation_id/tasks', postTaskToRelationHandler);
 router.patch('/:relation_id/tasks/:task_id', editTaskByIdHandler);

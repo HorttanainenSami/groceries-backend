@@ -3,20 +3,20 @@ import http from 'http';
 import { Server } from 'socket.io';
 import { decodeToken } from './resources/utils';
 import { TokenDecoded } from './types';
-import { baseTaskSchema, TaskType } from './modules/relations/relations.schema';
+import { baseTaskSchema, TaskRelationsBasicType, TaskType } from './modules/relations/relations.schema';
 import {
   editTaskBy,
+  getRelationsById,
   postTaskToRelation,
   removeTaskFromRelation,
 } from './modules/relations/relations.controller';
-import { create } from 'domain';
 
 const server = http.createServer(app);
-let user_id: string;
 const io = new Server(server);
 const wlog = '*************WEBSOCKET***********';
 io.of('/relation').on('connection', (socket) => {
   console.log(wlog, 'a user connected');
+  let user_id: string;
   const token = socket.handshake.auth.token;
   const relation_id = socket.handshake.auth.relation_id;
   if (!token || !relation_id) {
@@ -83,7 +83,19 @@ io.of('/relation').on('connection', (socket) => {
       socket.emit('error', { message: 'Failed to toggle task' });
     }
   });
-
+  socket.on('taskRefresh', async (data: TaskRelationsBasicType) => {
+    try {
+      console.log(wlog + 'Task refresh requested');
+      const relation = await getRelationsById(user_id, data.id);
+      if (!relation) {
+        throw new Error('Relation not found');
+      }
+      io.of('/relation').to(relation_id).emit('taskRefresh', relation);
+    } catch (error) {
+      console.error(wlog + 'Error refreshing tasks:', error);
+      socket.emit('error', { message: 'Failed to refresh tasks' });
+    }
+  });
   socket.on('disconnect', () => {
     console.log(wlog + 'user disconnected');
   });

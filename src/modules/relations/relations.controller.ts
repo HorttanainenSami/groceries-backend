@@ -23,9 +23,11 @@ import {
   patchTaskSchema,
   deleteRelationParamsSchema,
   TaskType,
+  getRelationsSchema,
 } from './relations.schema';
 import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
+import { getUserById } from '../user/user.service';
 
 export const postRelationAndShareWithUser = async (
   req: Request,
@@ -70,14 +72,22 @@ export const postRelationAndShareWithUser = async (
           task_relations_id: newRelation.id,
         }));
         await createTaskForRelation(tasks, txQuery);
-
         return newRelation;
       })
     );
     await txQuery('COMMIT', []);
     console.log('COMMITED');
+    const sharedWith = await getUserById(user_shared_with, txQuery);
     //add collaboratiors for relations
-    res.send(initialRelations);
+    const parsedResponse = getRelationsSchema.array().parse(
+      initialRelations.map((r) => ({...r,
+      my_permission: 'owner',
+      shared_with_id: sharedWith.id,
+      shared_with_name: sharedWith.name,
+      shared_with_email: sharedWith.email,
+    })));
+    console.log('parsedResponse', parsedResponse);
+    res.send(parsedResponse);
   } catch (e) {
     await txQuery('ROLLBACK', []);
     console.log('ROLLING BACK ', e);
@@ -157,7 +167,7 @@ export const shareRelationWithUser = async (
   }
 };
 
-export const getRelationById = async (
+export const getRelationByIdHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -166,11 +176,31 @@ export const getRelationById = async (
     const params = req.params;
     const { relation_id } = getRelationsByIdReqParams.parse(params);
     const { id } = decodeTokenFromRequest(req);
-    await getUserPermission({ id }, { id: relation_id });
-    const relation = await getRelationWithTasks({ id: relation_id });
+    const relation = await getRelationsById(id, relation_id);
     res.send(relation);
   } catch (e) {
     next(e);
+  }
+};
+
+export const getRelationsById = async (
+  user_id: string,
+  relation_id: string
+): Promise<{
+  id: string;
+  name: string;
+  tasks: TaskType[];
+}> => {
+  try {
+    await getUserPermission({ id: user_id }, { id: relation_id });
+    const relation = await getRelationWithTasks({ id: relation_id });
+    if (!relation) {
+      throw new Error('Relation not found');
+    }
+    return relation;
+  } catch (e) {
+    console.error('Error fetching relation by ID:', e);
+    throw e;
   }
 };
 export const getRelations = async (
@@ -253,8 +283,8 @@ export const removeTaskFromRelationHandler = async (
   }
 };
 
-export const removeTaskFromRelation =  async (
-  id: string, 
+export const removeTaskFromRelation = async (
+  id: string,
   relation_id: string,
   task_id: string
 ) => {

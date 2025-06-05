@@ -67,6 +67,7 @@ export const TaskRelationsBasicSchema = z.object({
     z.date()
   ),
 })
+export type TaskRelationsBasicType = z.infer<typeof TaskRelationsBasicSchema>;
 export const TaskRelationSchema = TaskRelationsBasicSchema.extend({
   tasks: TaskSchema.array(),
 });
