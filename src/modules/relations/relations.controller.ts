@@ -24,6 +24,7 @@ import {
   deleteRelationParamsSchema,
   TaskType,
   getRelationsSchema,
+  TaskRelationType,
 } from './relations.schema';
 import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
@@ -186,11 +187,9 @@ export const getRelationByIdHandler = async (
 export const getRelationsById = async (
   user_id: string,
   relation_id: string
-): Promise<{
-  id: string;
-  name: string;
-  tasks: TaskType[];
-}> => {
+): Promise<
+  TaskRelationType
+> => {
   try {
     await getUserPermission({ id: user_id }, { id: relation_id });
     const relation = await getRelationWithTasks({ id: relation_id });

@@ -11,7 +11,7 @@ const parseDate = (arg: unknown) => {
 };
 
 const parseNullableDate = (arg: unknown) => {
-  if (arg === null||arg ==='null') return null;
+  if (arg === null || arg === 'null') return null;
   return parseDate(arg);
 };
 
@@ -24,7 +24,6 @@ export const baseTaskSchema = z.object({
   task_relations_id: z.string().uuid(),
 });
 
-
 export const TaskSchema = baseTaskSchema.refine(
   (data) => !(data.completed_at && !data.completed_by),
   {
@@ -35,7 +34,10 @@ export const TaskSchema = baseTaskSchema.refine(
 
 export const baseModifyTaskSchema = z
   .object({
-    completed_at: z.preprocess(parseNullableDate, z.date().nullable().optional()),
+    completed_at: z.preprocess(
+      parseNullableDate,
+      z.date().nullable().optional()
+    ),
     completed_by: z.string().uuid().nullable().optional(),
     task: z.string().optional(),
   })
@@ -56,6 +58,18 @@ export const patchTaskSchema = baseModifyTaskSchema.transform((data) => {
   }
   return { ...data };
 });
+export const editTaskSchema = baseTaskSchema.transform((data) => {
+  if (!data.completed_at && !data.completed_by){
+    return { ...data, completed_at: null, completed_by: null };
+  }
+  if (data.completed_by) {
+    return { ...data, completed_at: new Date() };
+  }
+  if(data.completed_at && !data.completed_by) {
+    return { ...data, completed_at: null };
+  }
+  return { ...data };
+});
 
 export const TaskRelationsBasicSchema = z.object({
   id: z.string().uuid(),
@@ -66,7 +80,7 @@ export const TaskRelationsBasicSchema = z.object({
     z.date(),
     z.date()
   ),
-})
+});
 export type TaskRelationsBasicType = z.infer<typeof TaskRelationsBasicSchema>;
 export const TaskRelationSchema = TaskRelationsBasicSchema.extend({
   tasks: TaskSchema.array(),
@@ -81,7 +95,7 @@ export const getRelationsSchema = TaskRelationsBasicSchema.extend({
   shared_with_name: z.string(),
   shared_with_email: z.string().email(),
 });
-  
+
 export type getRelationsType = z.infer<typeof getRelationsSchema>;
 export type TaskRelationType = z.infer<typeof TaskRelationSchema>;
 export type TaskType = z.infer<typeof TaskSchema>;
@@ -120,15 +134,17 @@ export const getRelationsByIdReqParams = z.object({
   relation_id: TaskRelationSchema.pick({ id: true }).shape.id,
 });
 
-export const getRelationByIdQueryResponseSchema = baseTaskSchema.extend({
+export const getRelationByIdQueryResponseSchema = z.object({
   relation_id: z.string().uuid(),
-  name: z.string(),
-  shared: z.number().nullable(),
-  relation_created_at: z.preprocess(
-    (arg) => (typeof arg === 'string' ? new Date(arg) : arg),
-    z.date(),
-    z.date()
-  ),
+  relation_name: z.string(),
+  relation_created_at: z.string().date(),
+  relation_location: z.string().default('Server'),
+  task_id: z.string().uuid(),
+  task_task: z.string(),
+  task_created_at: z.string().date(),
+  task_completed_by: z.string().uuid().nullable(),
+  task_completed_at: z.string().date(),
+  task_relations_id: z.string().uuid(),
 });
 export type getRelationByIdQueryResponseType = z.infer<
   typeof getRelationByIdQueryResponseSchema

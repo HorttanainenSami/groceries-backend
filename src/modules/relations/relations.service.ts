@@ -124,16 +124,24 @@ export const createMultipleTaskForRelation = async (
 export const getRelationWithTasks = async (
   task_relation_id: Pick<TaskRelationType, 'id'>,
   txQuery?: typeof query
-) => {
+): Promise<TaskRelationType> => {
   if (txQuery === undefined) {
     txQuery = query;
   }
   try {
     const queryRelationById = await txQuery<getRelationByIdQueryResponseType>(
       `
-        SELECT tr.id as relation_id, tr.name, tr.created_at as relation_created_at,tr.relation_location,
-         task.id, task.task, task.created_at, task.completed_at, task.completed_by,
-          task.task_relations_id
+        SELECT 
+          tr.id as relation_id,
+          tr.name as relation_name,
+          tr.created_at as relation_created_at,
+          tr.relation_location as relation_location,
+          task.id as task_id, 
+          task.task as task_task,
+          task.created_at as task_created_at,
+          task.completed_at as task_completed_at, 
+          task.completed_by as task_completed_by,
+          task.task_relations_id as task_relations_id
            FROM task_relation
             AS tr LEFT JOIN task
             ON tr.id=task.task_relations_id
@@ -141,32 +149,41 @@ export const getRelationWithTasks = async (
       `,
       [task_relation_id.id]
     );
-    const { relation_id, name, shared, relation_created_at } =
-      queryRelationById.rows[0];
     console.log(queryRelationById.rows);
     const tasks = queryRelationById.rows.map(
       ({
-        id,
-        task,
-        created_at,
-        completed_at,
-        completed_by,
+        task_id,
+        task_task,
+        task_created_at,
+        task_completed_at,
+        task_completed_by,
         task_relations_id,
       }) => ({
-        id,
-        task,
-        created_at,
-        completed_at,
-        completed_by,
-        task_relations_id,
+        id:task_id,
+        task: task_task,
+        created_at: new Date(task_created_at),
+        completed_at: new Date(task_completed_at),
+        completed_by: task_completed_by,
+        task_relations_id: task_relations_id,
       })
     );
+    if(tasks.length === 1&& tasks[0].id === null) {
+      // If no tasks are found, return the relation with an empty tasks array
+      return {
+        id: queryRelationById.rows[0].relation_id,
+        name: queryRelationById.rows[0].relation_name,
+        created_at: new Date(queryRelationById.rows[0].relation_created_at),
+        relation_location: queryRelationById.rows[0].relation_location,
+        tasks: [],
+      };
+
+    }
     return {
-      id: relation_id,
-      name,
-      shared,
-      created_at: relation_created_at,
-      tasks,
+      id: queryRelationById.rows[0].relation_id,
+      name: queryRelationById.rows[0].relation_name,
+      created_at: new Date(queryRelationById.rows[0].relation_created_at),
+      relation_location: queryRelationById.rows[0].relation_location,
+      tasks: tasks,
     };
   } catch (error) {
     if (error instanceof pgError) {
