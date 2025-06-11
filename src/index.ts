@@ -46,14 +46,20 @@ io.of('/user').on('connection', (socket) => {
   });
  
   socket.on('task:join', async (relation_id: string) => {
-    console.log(wlog + 'User joining relation:', relation_id);
-    console.log('clients', io.engine.clientsCount);
-    const relation = await getRelationsById(user_id, relation_id);
-    if (!relation) {
-      throw new Error('Relation not found');
+    try{
+
+      console.log(wlog + 'User joining relation:', relation_id);
+      console.log('clients', io.engine.clientsCount);
+      const relation = await getRelationsById(user_id, relation_id);
+      if (!relation) {
+        throw new Error('Relation not found');
+      }
+      socket.join(relation.id);
+      io.of('/user').to(user_id).emit('task:join:success', relation);
+    } catch (error) {
+      console.error(wlog + 'Error joining relation:', error);
+      socket.emit('error', { message: 'Failed to join relation' });
     }
-    socket.join(relation.id);
-    io.of('/user').to(user_id).emit('task:join:success', relation);
   });
   socket.on('task:create', async (data: TaskType) => {
     try {
