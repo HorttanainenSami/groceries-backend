@@ -12,6 +12,7 @@ import {
   PermissionType,
   getRelationByIdQueryResponseType,
   getRelationsType,
+  TaskRelationsBasicType,
 } from './relations.schema';
 import { User } from '../../types';
 
@@ -162,7 +163,7 @@ export const getRelationWithTasks = async (
         id:task_id,
         task: task_task,
         created_at: new Date(task_created_at),
-        completed_at: new Date(task_completed_at),
+        completed_at: task_completed_at? new Date(task_completed_at): null,
         completed_by: task_completed_by,
         task_relations_id: task_relations_id,
       })
@@ -198,9 +199,9 @@ export const removeRelation = async (
   task_relation_id: Pick<TaskRelationType, 'id'>
 ) => {
   try {
-    const q = await query(
+    const q = await query<Pick<TaskRelationsBasicType, 'id'>>(
       `
-        DELETE FROM Task_relation WHERE id = $1 RETURNING *;
+        DELETE FROM Task_relation WHERE id = $1 RETURNING id;
       `,
       [task_relation_id.id]
     );
@@ -312,6 +313,44 @@ export const getAllRelations = async (user_id: Pick<User, 'id'>) => {
     throw error;
   }
 };
+export const getRelationById = async (relation_id: string, user_id: Pick<User, 'id'>) => {
+  try {
+    console.log(user_id);
+    const q = await query<Omit<getRelationsType, 'tasks'>>(
+      `
+      SELECT 
+        r.*, 
+        me.permission AS my_permission, 
+        users.id as shared_with_id,
+        users.name as shared_with_name,
+        users.email as shared_with_email
+      FROM task_relation r
+
+      LEFT JOIN task_permissions me 
+        ON me.task_relation_id = r.id 
+        AND me.user_id = $1
+
+      LEFT JOIN task_permissions other 
+        ON other.task_relation_id = r.id 
+        AND other.user_id != $1
+
+      LEFT JOIN users ON users.id=other.user_id
+      WHERE me.user_id IS NOT NULL AND r.id = $2;
+
+      `,
+
+      [user_id.id, relation_id]
+    );
+    return q.rows;
+  } catch (error) {
+    if (error instanceof pgError) {
+      console.error('Database error:', error);
+      throw new DatabaseError('Failed to fetch relations', error);
+    }
+    console.error('Error fetching relations:', error);
+    throw error;
+  }
+};
 
 export const getUserPermission = async (
   user_id: Pick<User, 'id'>,
@@ -387,3 +426,27 @@ export const grantRelationPermission = async (
     throw error;
   }
 };
+export const editRelationsName = async (
+  id: string,
+  newName: string,
+) => {
+  try {
+    const result = await query<Omit<TaskRelationType,'tasks'>>(
+      'UPDATE task_relation SET name = $1 WHERE id = $2 RETURNING *',
+      [newName, id]
+    );
+    if (result.rows.length === 0) {
+      console.log('No relation found with the given ID');
+      throw Error('No relation found with the given ID');
+    }
+    
+    return result.rows[0];
+  } catch (error) {
+    if (error instanceof pgError) {
+      console.error('Database error:', error);
+      throw new DatabaseError('Failed to change relation name', error);
+    }
+    console.error('Error changing relation name:', error);
+    throw error;
+  }
+}

@@ -11,6 +11,7 @@ import {
   removeTask,
   getTaskById,
   removeRelation,
+  editRelationsName,
 } from './relations.service';
 import {
   postRelationAndShareWithUserRequestSchema,
@@ -25,6 +26,7 @@ import {
   TaskType,
   getRelationsSchema,
   TaskRelationType,
+  editRelationNameParamsSchema,
 } from './relations.schema';
 import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
@@ -80,13 +82,17 @@ export const postRelationAndShareWithUser = async (
     console.log('COMMITED');
     const sharedWith = await getUserById(user_shared_with, txQuery);
     //add collaboratiors for relations
-    const parsedResponse = getRelationsSchema.array().parse(
-      initialRelations.map((r) => ({...r,
-      my_permission: 'owner',
-      shared_with_id: sharedWith.id,
-      shared_with_name: sharedWith.name,
-      shared_with_email: sharedWith.email,
-    })));
+    const parsedResponse = getRelationsSchema
+      .array()
+      .parse(
+        initialRelations.map((r) => ({
+          ...r,
+          my_permission: 'owner',
+          shared_with_id: sharedWith.id,
+          shared_with_name: sharedWith.name,
+          shared_with_email: sharedWith.email,
+        }))
+      );
     console.log('parsedResponse', parsedResponse);
     res.send(parsedResponse);
   } catch (e) {
@@ -187,9 +193,7 @@ export const getRelationByIdHandler = async (
 export const getRelationsById = async (
   user_id: string,
   relation_id: string
-): Promise<
-  TaskRelationType
-> => {
+): Promise<TaskRelationType> => {
   try {
     await getUserPermission({ id: user_id }, { id: relation_id });
     const relation = await getRelationWithTasks({ id: relation_id });
@@ -297,7 +301,7 @@ export const removeTaskFromRelation = async (
   }
 };
 
-export const removeRelationFromServer = async (
+export const removeRelationFromServerHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -305,13 +309,62 @@ export const removeRelationFromServer = async (
   try {
     const { id } = decodeTokenFromRequest(req);
     const { relation_id } = deleteRelationParamsSchema.parse(req.params);
-    await getUserPermission({ id }, { id: relation_id });
-    //remove relation
-    await removeRelation({ id: relation_id });
-
-    res.send('ok');
+    if (Array.isArray(relation_id)) {
+      const promises = relation_id.map((relId) =>
+        removeRelationFromServer(id, relId)
+      );
+      const responses = await Promise.all(promises);
+      return res.status(200).send(responses);
+    }
+    const response = await removeRelationFromServer(id, relation_id);
+    res.status(200).send(response);
   } catch (e) {
     console.log(e);
     next(e);
+  }
+};
+export const removeRelationFromServer = async (
+  user_id: string,
+  relation_id: string
+): Promise<[boolean, string]> => {
+  try {
+    await getUserPermission({ id: user_id }, { id: relation_id });
+    //remove relation
+    const response = await removeRelation({ id: relation_id });
+
+    return [true, response.id];
+  } catch (e) {
+    console.error('Error removing relation from server:', e);
+    return [false, relation_id];
+  }
+};
+export const changeRelationNameHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = decodeTokenFromRequest(req);
+    const { relation_id, new_name } = editRelationNameParamsSchema.parse(
+      req.params
+    );
+    await getUserPermission({ id }, { id: relation_id });
+    const response = await changeRelationName(relation_id, new_name);
+    res.send(response);
+  } catch (e) {
+    console.log(e);
+    next(e);
+  }
+};
+export const changeRelationName = async (
+  relation_id: string,
+  newName: string
+): Promise<Omit<TaskRelationType, 'tasks'>> => {
+  try {
+    const updatedRelation = await editRelationsName(relation_id, newName);
+    return updatedRelation;
+  } catch (e) {
+    console.error('Error changing relation name:', e);
+    throw e;
   }
 };

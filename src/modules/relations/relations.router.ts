@@ -1,11 +1,12 @@
 import express from 'express';
 import {
+  changeRelationNameHandler,
   editTaskByIdHandler,
   getRelationByIdHandler,
   getRelations,
   postRelationAndShareWithUser,
   postTaskToRelationHandler,
-  removeRelationFromServer,
+  removeRelationFromServerHandler,
   removeTaskFromRelationHandler,
 } from './relations.controller';
 
@@ -17,8 +18,9 @@ router.post('/share', postRelationAndShareWithUser);
 router.get('', getRelations);
 //get relation by id
 router.get('/:relation_id', getRelationByIdHandler);
+router.patch('/:relation_id', changeRelationNameHandler);
 //create new task to relation
 router.post('/:relation_id/tasks', postTaskToRelationHandler);
 router.patch('/:relation_id/tasks/:task_id', editTaskByIdHandler);
 router.delete('/:relation_id/tasks/:task_id', removeTaskFromRelationHandler);
-router.delete('/:relation_id', removeRelationFromServer);
+router.delete('/:relation_id', removeRelationFromServerHandler);

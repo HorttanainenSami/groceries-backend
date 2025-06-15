@@ -150,8 +150,13 @@ export type getRelationByIdQueryResponseType = z.infer<
   typeof getRelationByIdQueryResponseSchema
 >;
 export const deleteRelationParamsSchema = z.object({
-  relation_id: z.string().uuid(),
+  relation_id: z.string().uuid().or(z.string().uuid().array()),
 });
 export type deleteRelationParamsType = z.infer<
   typeof deleteRelationParamsSchema
 >;
+
+export const editRelationNameParamsSchema = z.object({
+  relation_id: z.string().uuid(),
+  new_name: z.string().min(1, 'Name must be at least 1 character long'),
+});
