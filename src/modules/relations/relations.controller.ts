@@ -26,7 +26,7 @@ import {
   TaskType,
   getRelationsSchema,
   TaskRelationType,
-  editRelationNameParamsSchema,
+  editRelationNameBodySchema,
 } from './relations.schema';
 import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
@@ -345,8 +345,8 @@ export const changeRelationNameHandler = async (
 ) => {
   try {
     const { id } = decodeTokenFromRequest(req);
-    const { relation_id, new_name } = editRelationNameParamsSchema.parse(
-      req.params
+    const { relation_id, new_name } = editRelationNameBodySchema.parse(
+      req.body
     );
     await getUserPermission({ id }, { id: relation_id });
     const response = await changeRelationName(relation_id, new_name);

@@ -156,7 +156,7 @@ export type deleteRelationParamsType = z.infer<
   typeof deleteRelationParamsSchema
 >;
 
-export const editRelationNameParamsSchema = z.object({
+export const editRelationNameBodySchema = z.object({
   relation_id: z.string().uuid(),
   new_name: z.string().min(1, 'Name must be at least 1 character long'),
 });

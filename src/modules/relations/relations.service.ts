@@ -431,7 +431,7 @@ export const editRelationsName = async (
   newName: string,
 ) => {
   try {
-    const result = await query<Omit<TaskRelationType,'tasks'>>(
+    const result = await query<TaskRelationsBasicType>(
       'UPDATE task_relation SET name = $1 WHERE id = $2 RETURNING *',
       [newName, id]
     );
