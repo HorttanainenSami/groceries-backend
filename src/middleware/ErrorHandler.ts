@@ -8,6 +8,7 @@ import {
   JsonWebTokenError,
   DatabaseError,
   AuthorizationError,
+  ApplicationError,
 } from './Error.types';
 import { DatabaseError as dbError } from 'pg';
 import { ZodError } from 'zod';
@@ -18,6 +19,7 @@ const ErrorHandler = (
   response: Response,
   _next: NextFunction
 ) => {
+  
   if (error instanceof CastError) {
     console.error('Invalid ID format:', error);
     return response
@@ -61,6 +63,11 @@ const ErrorHandler = (
     console.error('Authentication error:', error);
     return response
       .status(error.statusCode || 403)
+      .json({ error: error.message });
+  } else if (error instanceof ApplicationError) {
+    console.error('Application error:', error);
+    return response
+      .status(error.statusCode || 500)
       .json({ error: error.message });
   } else {
     console.error('Unexpected error:', error.message, error.stack);

@@ -1,11 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { getTokenFrom, decodeTokenFromRequest } from '../resources/utils';
+import { decodeTokenFromRequest } from '../resources/utils';
 import {
   AuthorizationError,
   TokenExpiredError,
 } from '../middleware/Error.types';
-import { TokenDecoded } from '../types';
-import jwt from 'jsonwebtoken';
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = req.headers['authorization'];
@@ -18,7 +16,7 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
     const decodedToken = decodeTokenFromRequest(req);
     console.log('user id', decodedToken.id);
   } catch (err) {
-    if (err instanceof Error && err.name === 'TokenExpiredError') {
+    if (err instanceof Error && err.name === 'JsonWebTokenError') {
       const date = new Date();
       return next(new TokenExpiredError('Error: token expired', date));
     }

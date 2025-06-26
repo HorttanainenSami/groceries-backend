@@ -25,8 +25,8 @@ export function decodeTokenFromRequest(request: Request) {
     const token = getTokenFrom(request);
     const userInfo = decodeToken<TokenDecoded>(token);
     return userInfo;
-  } catch {
-    throw new JsonWebTokenError('Invalid/malformed token');
+  } catch(e) {
+    throw e;
   }
 }
 

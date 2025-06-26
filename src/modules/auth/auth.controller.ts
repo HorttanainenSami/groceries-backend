@@ -47,7 +47,7 @@ export const login = async (
       next(new AuthenticationError('Invalid credentials'));
     }
     const { email, id } = user;
-    const token = jwt.sign({ email, id }, secret(), { expiresIn: '24h' });
+    const token = jwt.sign({ email, id }, secret(), { expiresIn: '7d' });
     res.send({ token, email, id });
   } catch (err) {
     next(err);

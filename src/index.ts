@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import { decodeToken } from './resources/utils';
 import { TokenDecoded } from './types';
+import jwt from 'jsonwebtoken';
 import {
   baseTaskSchema,
   editTaskSchema,
@@ -14,29 +15,30 @@ import {
   postTaskToRelation,
   removeTaskFromRelation,
 } from './modules/relations/relations.controller';
+import { JsonWebTokenError } from 'jsonwebtoken';
 
 const server = http.createServer(app);
 const io = new Server(server);
 const wlog = '*************WEBSOCKET***********';
-
-io.of('/user').on('connection', (socket) => {
-  console.log(wlog, 'a user tries to connect');
-  let user_id: string;
+io.of('/user').use((socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) {
-    console.log(wlog + 'No token provided, disconnecting');
-    socket.disconnect();
-    return;
+    console.log(wlog, 'Middleware: No token provided.');
+    return next(new Error('Invalid token: No token provided'));
   }
   try {
-    const decodedToken = decodeToken<TokenDecoded>(token);
-    console.log(wlog + 'User token:', decodedToken);
-    user_id = decodedToken.id;
+    jwt.verify(token, process.env.SECRET || '');
+    next();
   } catch (error) {
-    console.error(wlog + 'Invalid token:', error);
-    socket.disconnect();
-    return;
+    console.error(wlog, 'Middleware: Invalid token.', error);
+    next(new Error('Invalid token')); // Token is invalid, reject connection
   }
+});
+io.of('/user').on('connection', (socket) => {
+  const token = socket.handshake.auth.token;
+  const decodedToken = decodeToken<TokenDecoded>(token);
+  const user_id = decodedToken.id;
+
   socket.join(user_id);
   io.of('/user').adapter.on('join-room', (room, id) => {
     console.log(`socket ${id} has joined room ${room}`);
@@ -44,10 +46,10 @@ io.of('/user').on('connection', (socket) => {
   io.of('/user').adapter.on('leave-room', (room, id) => {
     console.log(`socket ${id} has joined room ${room}`);
   });
- 
-  socket.on('task:join', async (relation_id: string) => {
-    try{
 
+  socket.on('task:join', async (relation_id: string) => {
+    try {
+      jwt.verify(token, process.env.SECRET || '');
       console.log(wlog + 'User joining relation:', relation_id);
       console.log('clients', io.engine.clientsCount);
       const relation = await getRelationsById(user_id, relation_id);
@@ -57,6 +59,15 @@ io.of('/user').on('connection', (socket) => {
       socket.join(relation.id);
       io.of('/user').to(user_id).emit('task:join:success', relation);
     } catch (error) {
+      if (error instanceof JsonWebTokenError) {
+        console.log(
+          wlog + 'JSONWebTokenError joining relation:',
+          error,
+          socket.rooms
+        );
+        socket.emit('token:error', { message: error.message });
+        return;
+      }
       console.error(wlog + 'Error joining relation:', error);
       socket.emit('error', { message: 'Failed to join relation' });
     }
@@ -98,14 +109,16 @@ io.of('/user').on('connection', (socket) => {
     try {
       console.log(wlog + 'Remove task:', data);
       const parsedTask = baseTaskSchema.array().parse(data);
-      const sql_data = await Promise.all(parsedTask.map(t => (removeTaskFromRelation(
-        user_id,
-        t.task_relations_id,
-        t.id,
-      ))));
+      const sql_data = await Promise.all(
+        parsedTask.map((t) =>
+          removeTaskFromRelation(user_id, t.task_relations_id, t.id)
+        )
+      );
       console.log(data[0].task_relations_id, 'sql_data', sql_data);
       console.log(wlog + 'Task removed:', sql_data);
-      io.of('/user').to(data[0].task_relations_id).emit('task:removed', sql_data);
+      io.of('/user')
+        .to(data[0].task_relations_id)
+        .emit('task:removed', sql_data);
     } catch (error) {
       console.error(wlog + 'Error toggling task:', error);
       socket.emit('error', { message: 'Failed to toggle task' });
