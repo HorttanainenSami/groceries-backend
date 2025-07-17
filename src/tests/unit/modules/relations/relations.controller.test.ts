@@ -12,12 +12,12 @@ import { AuthenticationError } from '../../../../middleware/Error.types';
 import { Request, Response, NextFunction } from 'express';
 import { createFixture } from 'zod-fixture';
 import {
+  userSchema,
   baseTaskSchema,
   editRelationsTaskByIdReqBodySchema,
   editRelationsTaskByIdReqParamsSchema,
   TaskRelationSchema,
-} from '../../../../modules/relations/relations.schema';
-import { userSchema } from '../../../../modules/auth/auth.schema';
+} from '@groceries/shared-types';
 import z from 'zod';
 jest.mock('../../../../modules/relations/relations.service');
 jest.mock('../../../../resources/utils');

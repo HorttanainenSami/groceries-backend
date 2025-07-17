@@ -8,7 +8,7 @@ import {
   baseTaskSchema,
   editTaskSchema,
   TaskType,
-} from './modules/relations/relations.schema';
+} from '@groceries/shared-types';
 import {
   editTaskBy,
   getRelationsById,

@@ -4,7 +4,8 @@ module.exports = {
     testMatch: ['**/tests/unit/**/*.test.ts','**/tests/integration/**/*.test.ts',], // Match all test files with .test.ts extension
     moduleFileExtensions: ['ts', 'js', 'json'], // Recognize these file extensions
     moduleNameMapper: {
-      '^@/(.*)$': '<rootDir>/src/$1', // Optional: Alias for cleaner imports
+      '^@/(.*)$': '<rootDir>/src/$1', // Optional: Alias for cleaner imports,
+      "^@groceries/shared-types(.*)$": "<rootDir>/../shared_types/src/$1",
     },
     setupFiles: ['dotenv/config'], // Load environment variables from .env
     collectCoverage: true, // Enable code coverage collection

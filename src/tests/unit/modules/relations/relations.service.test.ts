@@ -1,28 +1,28 @@
 import * as relationsService from '../../../../modules/relations/relations.service';
 import { query } from '../../../../database/connection';
-import { TaskType } from '../../../../modules/relations/relations.schema';
+import { TaskType } from '@groceries/shared-types';
 jest.mock('../../../../database/connection');
 describe('Relation Service', () => {
   const mock_data_of_2: Omit<TaskType, 'id'>[] = [
     {
       task: 'Mock Task 1',
-      created_at: new Date(),
+      created_at: new Date().toISOString(),
       completed_by: null,
       completed_at: null,
       task_relations_id: '4517bec7-6672-443a-b6f1-be1697d67398',
     },
     {
       task: 'Mock Task 2',
-      created_at: new Date(),
+      created_at: new Date().toISOString(),
       completed_by: 'f7e6d5c4-b3a2-1f0e-9d8c-7b6a5e4d3c2b',
-      completed_at: new Date(),
+      completed_at: new Date().toISOString(),
       task_relations_id: '4517bec7-6672-443a-b6f1-be1697d67398',
     },
   ];
   const mock_data_of_1 = [
     {
       task: 'Mock Task 1',
-      created_at: new Date(),
+      created_at: new Date().toISOString(),
       completed_by: null,
       completed_at: null,
       task_relations_id: '4517bec7-6672-443a-b6f1-be1697d67398',
@@ -38,7 +38,7 @@ describe('Relation Service', () => {
           {
             id: 'some-id',
             task: 'Mock Task',
-            created_at: new Date(),
+            created_at: new Date().toISOString(),
             completed_by: null,
             completed_at: null,
             task_relations_id: 'some-relation-id',
@@ -49,7 +49,7 @@ describe('Relation Service', () => {
         .mockResolvedValue({
           id: 'some-id',
           task: 'Mock Task',
-          created_at: new Date(),
+          created_at: new Date().toISOString(),
           completed_by: null,
           completed_at: null,
           task_relations_id: 'some-relation-id',

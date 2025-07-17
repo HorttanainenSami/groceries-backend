@@ -1,12 +1,11 @@
-import { User, IUserLogin } from '../../types';
 import { AuthenticationError } from '../../middleware/Error.types';
-import { userSchema, newUserType } from './auth.schema';
+import { userSchema, newUserType, UserType, loginRequestBodyType } from '@groceries/shared-types';
 import { query } from '../../database/connection';
 import bcrypt from 'bcrypt';
 import { DatabaseError as pgError } from 'pg';
 import { DatabaseError } from '../../middleware/Error.types';
 
-const createUser = async (user: newUserType): Promise<User> => {
+const createUser = async (user: newUserType): Promise<UserType> => {
   try {
     console.log('createUser', user);
     const q = await query(
@@ -22,7 +21,7 @@ const createUser = async (user: newUserType): Promise<User> => {
     throw error;
   }
 };
-const getUserByEmail = async (user: IUserLogin): Promise<User> => {
+const getUserByEmail = async (user: loginRequestBodyType): Promise<UserType> => {
   const loginError = () => {
     throw new AuthenticationError('Email and/or password is wrong!');
   };

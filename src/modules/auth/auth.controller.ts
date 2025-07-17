@@ -3,13 +3,12 @@ import userApi from './auth.service';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { secret } from '../../resources/utils';
-import { loginReqBodySchema, registerReqBodySchema } from './auth.schema';
+import { loginReqBodySchema, LoginResponseType, registerReqBodySchema, RegisterResponseType, UserType  } from '@groceries/shared-types';
 import { AuthenticationError } from '../../middleware/Error.types';
-import { User } from '../../types';
 
 export const register = async (
   req: Request,
-  res: Response,
+  res: Response<RegisterResponseType>,
   next: NextFunction
 ) => {
   try {
@@ -18,7 +17,6 @@ export const register = async (
       ...initialUser,
       password: await bcrypt.hash(initialUser.password, 10),
     };
-    /* eslint-disable */
     const { password, ...user } = await userApi.createUser(
       encryptedPasswordUser
     );
@@ -28,9 +26,10 @@ export const register = async (
     next(error);
   }
 };
+
 export const login = async (
   req: Request,
-  res: Response,
+  res: Response<LoginResponseType>,
   next: NextFunction
 ) => {
   try {
@@ -38,7 +37,7 @@ export const login = async (
     const initialUser = loginReqBodySchema.safeParse(req.body);
     if (initialUser.error)
       return next(new AuthenticationError('Invalid credentials'));
-    const user: User = await userApi.getUserByEmail(initialUser.data);
+    const user: UserType = await userApi.getUserByEmail(initialUser.data);
     //same error message if email or pass is wrong for security
     if (
       user === null ||

@@ -1,10 +1,9 @@
 import { query } from '../../database/connection';
-import { searchType } from './user.schema';
 import { DatabaseError as pgError } from 'pg';
 import { DatabaseError } from '../../middleware/Error.types';
-import { UserType } from '../auth/auth.schema';
+import { UserType, searchQueryType } from '@groceries/shared-types';
 
-export const getUsersByParams = async (params: searchType) => {
+export const getUsersByParams = async (params: searchQueryType) => {
   try {
     console.log('inGetUsersByParams: ', params);
     const q = await query(

@@ -2,11 +2,7 @@ import request from 'supertest';
 import { decodeTokenFromRequest } from '../../../../resources/utils';
 import { jest } from '@jest/globals';
 import { app } from '../../../../app';
-import {
-  TaskRelationType,
-  TaskType,
-} from '../../../../modules/relations/relations.schema';
-import { UserType } from '../../../../modules/auth/auth.schema';
+import { UserType, TaskRelationType, TaskType } from '@groceries/shared-types';
 import jwt from 'jsonwebtoken';
 import { pool, query } from '../../../../database/connection';
 
@@ -115,15 +111,15 @@ describe('POST /relations/share', () => {
         {
           id: '00000000-0000-0000-0000-000000000001',
           task: 'Test Task',
-          created_at: new Date('2024-01-01T00:00:00.000Z'),
-          completed_at: new Date('2024-01-01T00:00:00.000Z'),
+          created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+          completed_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
           completed_by: user_2.id,
           task_relations_id: '00000000-0000-0000-0000-000000000001',
         },
         {
           id: '00000000-0000-0000-0000-000000000002',
           task: 'Test Task 2',
-          created_at: new Date('2024-01-01T00:00:00.000Z'),
+          created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
           completed_at: null,
           completed_by: user_1.id,
           task_relations_id: '00000000-0000-0000-0000-000000000001',
@@ -131,7 +127,7 @@ describe('POST /relations/share', () => {
         {
           id: '00000000-0000-0000-0000-000000000003',
           task: 'Test Task 3',
-          created_at: new Date('2024-01-01T00:00:00.000Z'),
+          created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
           completed_at: null,
           completed_by: null,
           task_relations_id: '00000000-0000-0000-0000-000000000001',
@@ -141,11 +137,13 @@ describe('POST /relations/share', () => {
         id: '00000000-0000-0000-0000-000000000000',
         name: 'Test Relation',
         relation_location: 'Server',
-        created_at: new Date('2024-01-01T00:00:00.000Z'),
+        created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
         tasks: tasks,
       };
       const token = jwt.sign(user_1, process.env.SECRET || 'secret');
-      (decodeTokenFromRequest as jest.Mock).mockReturnValueOnce({ id: user_1.id });
+      (decodeTokenFromRequest as jest.Mock).mockReturnValueOnce({
+        id: user_1.id,
+      });
 
       const response = await request(app)
         .post('/relations/share')
@@ -178,7 +176,7 @@ describe('POST /relations/share', () => {
         {
           id: '00000000-0000-0000-0000-000000000003',
           task: 'Test Task 3',
-          created_at: new Date('2024-01-01T00:00:00.000Z'),
+          created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
           completed_at: null,
           completed_by: null,
           task_relations_id: '00000000-0000-0000-0000-000000000001',
@@ -188,7 +186,7 @@ describe('POST /relations/share', () => {
         id: '00000000-0000-0000-0000-000000000000',
         name: 'Test Relation',
         relation_location: 'Server',
-        created_at: new Date('2024-01-01T00:00:00.000Z'),
+        created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
         tasks: tasks,
       };
       const token = jwt.sign(user_1, process.env.SECRET || 'secret');
@@ -267,13 +265,13 @@ describe('GET /relations', () => {
           id: '00000000-0000-0000-0000-000000000000',
           name: 'Test Relation',
           relation_location: 'Local',
-          created_at: new Date('2024-01-01T00:00:00.000Z'),
+          created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
           tasks: [
             {
               id: '00000000-0000-0000-0000-000000000001',
               task: 'Test Task',
-              created_at: new Date('2024-01-01T00:00:00.000Z'),
-              completed_at: new Date('2024-01-01T00:00:00.000Z'),
+              created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+              completed_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
               completed_by: user_2.id,
               task_relations_id: '00000000-0000-0000-0000-000000000000',
             },
@@ -283,12 +281,12 @@ describe('GET /relations', () => {
           id: '00000000-0000-0000-0000-000000000001',
           name: 'Test Relation',
           relation_location: 'Local',
-          created_at: new Date('2024-01-01T00:00:00.000Z'),
+          created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
           tasks: [
             {
               id: '00000000-0000-0000-0000-000000000002',
               task: 'Test Task 2',
-              created_at: new Date('2024-01-01T00:00:00.000Z'),
+              created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
               completed_at: null,
               completed_by: user_1.id,
               task_relations_id: '00000000-0000-0000-0000-000000000001',
@@ -299,13 +297,13 @@ describe('GET /relations', () => {
           id: '00000000-0000-0000-0000-000000000002',
           name: 'Test Relation',
           relation_location: 'Local',
-          created_at: new Date('2024-01-01T00:00:00.000Z'),
+          created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
           tasks: [
             {
               id: '00000000-0000-0000-0000-000000000003',
               task: 'Test Task',
-              created_at: new Date('2024-01-01T00:00:00.000Z'),
-              completed_at: new Date('2024-01-01T00:00:00.000Z'),
+              created_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
+              completed_at: new Date('2024-01-01T00:00:00.000Z').toISOString(),
               completed_by: user_2.id,
               task_relations_id: '00000000-0000-0000-0000-000000000002',
             },

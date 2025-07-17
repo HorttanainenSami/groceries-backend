@@ -6,15 +6,15 @@ import {
   DatabaseError,
 } from '../../middleware/Error.types';
 import {
+  UserType,
   permissionSchema,
   TaskRelationType,
   TaskType,
   PermissionType,
   getRelationByIdQueryResponseType,
-  getRelationsType,
+  getRelationsResponseType,
   TaskRelationsBasicType,
-} from './relations.schema';
-import { User } from '../../types';
+} from '@groceries/shared-types';
 
 export const createTaskRelation = async (
   relation: TaskRelationType,
@@ -162,8 +162,8 @@ export const getRelationWithTasks = async (
       }) => ({
         id:task_id,
         task: task_task,
-        created_at: new Date(task_created_at),
-        completed_at: task_completed_at? new Date(task_completed_at): null,
+        created_at: task_created_at,
+        completed_at: task_completed_at,
         completed_by: task_completed_by,
         task_relations_id: task_relations_id,
       })
@@ -173,7 +173,7 @@ export const getRelationWithTasks = async (
       return {
         id: queryRelationById.rows[0].relation_id,
         name: queryRelationById.rows[0].relation_name,
-        created_at: new Date(queryRelationById.rows[0].relation_created_at),
+        created_at: queryRelationById.rows[0].relation_created_at,
         relation_location: queryRelationById.rows[0].relation_location,
         tasks: [],
       };
@@ -182,7 +182,7 @@ export const getRelationWithTasks = async (
     return {
       id: queryRelationById.rows[0].relation_id,
       name: queryRelationById.rows[0].relation_name,
-      created_at: new Date(queryRelationById.rows[0].relation_created_at),
+      created_at: queryRelationById.rows[0].relation_created_at,
       relation_location: queryRelationById.rows[0].relation_location,
       tasks: tasks,
     };
@@ -275,10 +275,10 @@ export const getTaskById = async ({
   );
   return q.rows[0];
 };
-export const getAllRelations = async (user_id: Pick<User, 'id'>) => {
+export const getAllRelations = async (user_id: Pick<UserType, 'id'>) => {
   try {
     console.log(user_id);
-    const q = await query<Omit<getRelationsType, 'tasks'>>(
+    const q = await query<Omit<getRelationsResponseType, 'tasks'>>(
       `
       SELECT 
         r.*, 
@@ -313,10 +313,10 @@ export const getAllRelations = async (user_id: Pick<User, 'id'>) => {
     throw error;
   }
 };
-export const getRelationById = async (relation_id: string, user_id: Pick<User, 'id'>) => {
+export const getRelationById = async (relation_id: string, user_id: Pick<UserType, 'id'>) => {
   try {
     console.log(user_id);
-    const q = await query<Omit<getRelationsType, 'tasks'>>(
+    const q = await query<Omit<getRelationsResponseType, 'tasks'>>(
       `
       SELECT 
         r.*, 
@@ -353,7 +353,7 @@ export const getRelationById = async (relation_id: string, user_id: Pick<User, '
 };
 
 export const getUserPermission = async (
-  user_id: Pick<User, 'id'>,
+  user_id: Pick<UserType, 'id'>,
   task_relation_id: Pick<TaskRelationType, 'id'>
 ): Promise<PermissionType> => {
   try {
@@ -392,7 +392,7 @@ export const getUserPermission = async (
 };
 
 export const grantRelationPermission = async (
-  user_id: Pick<User, 'id'>,
+  user_id: Pick<UserType, 'id'>,
   task_relation_id: Pick<TaskRelationType, 'id'>,
   permission: PermissionType,
   queryOrTxQuery?: typeof query

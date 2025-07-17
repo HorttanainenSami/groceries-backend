@@ -24,17 +24,18 @@ import {
   patchTaskSchema,
   deleteRelationParamsSchema,
   TaskType,
-  getRelationsSchema,
+  getRelationsResponseSchema,
   TaskRelationType,
   editRelationNameBodySchema,
-} from './relations.schema';
+  getRelationsResponseType
+} from '@groceries/shared-types';
 import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
 import { getUserById } from '../user/user.service';
 
 export const postRelationAndShareWithUser = async (
   req: Request,
-  res: Response,
+  res: Response<getRelationsResponseType[]>,
   next: NextFunction
 ) => {
   console.log('Hello from postRelationAndShareWithUser');
@@ -53,7 +54,7 @@ export const postRelationAndShareWithUser = async (
         const newRelation = await createTaskRelation(
           {
             ...relation,
-            created_at: new Date(),
+            created_at: new Date().toISOString(),
           },
           txQuery
         );
@@ -82,7 +83,7 @@ export const postRelationAndShareWithUser = async (
     console.log('COMMITED');
     const sharedWith = await getUserById(user_shared_with, txQuery);
     //add collaboratiors for relations
-    const parsedResponse = getRelationsSchema
+    const parsedResponse = getRelationsResponseSchema
       .array()
       .parse(
         initialRelations.map((r) => ({
@@ -104,14 +105,14 @@ export const postRelationAndShareWithUser = async (
 
 export const postTaskToRelationHandler = async (
   req: Request,
-  res: Response,
+  res: Response<TaskType[]|TaskType>,
   next: NextFunction
 ) => {
   try {
     const { task } = postTaskToRelationReqSchema.parse(req.body);
     const { id } = decodeTokenFromRequest(req);
     //check if user had permission to edit
-    const savedTask = postTaskToRelation(id, task);
+    const savedTask = await postTaskToRelation(id, task);
     res.send(savedTask);
   } catch (e) {
     next(e);
@@ -142,7 +143,7 @@ export const postTaskToRelation = async (
 
 export const shareRelationWithUser = async (
   req: Request,
-  res: Response,
+  res: Response<{message: string}>,
   next: NextFunction
 ) => {
   try {
@@ -176,7 +177,7 @@ export const shareRelationWithUser = async (
 
 export const getRelationByIdHandler = async (
   req: Request,
-  res: Response,
+  res: Response<TaskRelationType>,
   next: NextFunction
 ) => {
   try {
@@ -208,7 +209,7 @@ export const getRelationsById = async (
 };
 export const getRelations = async (
   req: Request,
-  res: Response,
+  res: Response<Omit<getRelationsResponseType, 'tasks'>[]>,
   next: NextFunction
 ) => {
   try {
@@ -219,15 +220,10 @@ export const getRelations = async (
     next(e);
   }
 };
-//**************************
-//
-// tee schema
-
-// */
 
 export const editTaskByIdHandler = async (
   req: Request,
-  res: Response,
+  res: Response<TaskType>,
   next: NextFunction
 ) => {
   try {
