@@ -3,7 +3,7 @@ import userApi from './auth.service';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { secret } from '../../resources/utils';
-import { loginReqBodySchema, LoginResponseType, registerReqBodySchema, RegisterResponseType, UserType  } from '@groceries/shared-types';
+import { loginReqBodySchema, LoginResponseType, registerReqBodySchema, RegisterResponseType, UserType  } from '@groceries/shared_types';
 import { AuthenticationError } from '../../middleware/Error.types';
 
 export const register = async (

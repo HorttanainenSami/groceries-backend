@@ -1,7 +1,7 @@
 import { query } from '../../database/connection';
 import { DatabaseError as pgError } from 'pg';
 import { DatabaseError } from '../../middleware/Error.types';
-import { UserType, searchQueryType } from '@groceries/shared-types';
+import { UserType, searchQueryType } from '@groceries/shared_types';
 
 export const getUsersByParams = async (params: searchQueryType) => {
   try {

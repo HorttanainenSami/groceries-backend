@@ -2,13 +2,13 @@ import { app } from './app';
 import http from 'http';
 import { Server } from 'socket.io';
 import { decodeToken } from './resources/utils';
-import { TokenDecoded } from './types';
 import jwt from 'jsonwebtoken';
 import {
   baseTaskSchema,
   editTaskSchema,
   TaskType,
-} from '@groceries/shared-types';
+  TokenDecoded
+} from '@groceries/shared_types';
 import {
   editTaskBy,
   getRelationsById,

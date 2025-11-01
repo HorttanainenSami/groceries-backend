@@ -28,7 +28,7 @@ import {
   TaskRelationType,
   editRelationNameBodySchema,
   getRelationsResponseType
-} from '@groceries/shared-types';
+} from '@groceries/shared_types';
 import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
 import { getUserById } from '../user/user.service';

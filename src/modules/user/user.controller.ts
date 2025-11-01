@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { getUsersByParams } from './user.service';
-import { searchQuery } from '@groceries/shared-types';
+import { searchQuery } from '@groceries/shared_types';
 
 export const getUsersBySearchParams = async (
   req: Request,

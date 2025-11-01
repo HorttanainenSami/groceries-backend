@@ -1,5 +1,5 @@
 import { AuthenticationError } from '../../middleware/Error.types';
-import { userSchema, newUserType, UserType, loginRequestBodyType } from '@groceries/shared-types';
+import { userSchema, newUserType, UserType, loginRequestBodyType } from '@groceries/shared_types';
 import { query } from '../../database/connection';
 import bcrypt from 'bcrypt';
 import { DatabaseError as pgError } from 'pg';

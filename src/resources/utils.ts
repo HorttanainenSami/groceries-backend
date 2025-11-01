@@ -1,6 +1,6 @@
 import jwt, { JsonWebTokenError } from 'jsonwebtoken';
 import { Request } from 'express';
-import { TokenDecoded } from '../types';
+import { TokenDecoded } from '@groceries/shared_types';
 
 export const secret = () => {
   const env = process.env.SECRET;

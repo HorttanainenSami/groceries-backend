@@ -14,7 +14,7 @@ import {
   getRelationByIdQueryResponseType,
   getRelationsResponseType,
   TaskRelationsBasicType,
-} from '@groceries/shared-types';
+} from '@groceries/shared_types';
 
 export const createTaskRelation = async (
   relation: TaskRelationType,

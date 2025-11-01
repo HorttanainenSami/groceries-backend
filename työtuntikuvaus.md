@@ -1,3 +1,4 @@
+1.11.25 3h tyypitysten vieminen omaan kirjastoon
 5.6.25 1h Taskien hakeminen socketin avulla ja oikeellisen datan palauttaminen rajapintaan relaation tallettamisen yhteydessä
 3.6.25 1h getRelations jakaa myös tiedon kenen kanssa lista on jaettu
 15.5.25 Testien tekeminen ja eslintin conffaaminen 6h
