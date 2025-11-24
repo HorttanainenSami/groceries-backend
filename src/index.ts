@@ -15,7 +15,6 @@ import {
   postTaskToRelation,
   removeTaskFromRelation,
 } from './modules/relations/relations.controller';
-import { JsonWebTokenError } from 'jsonwebtoken';
 
 const server = http.createServer(app);
 const io = new Server(server);
@@ -31,7 +30,9 @@ io.of('/user').use((socket, next) => {
     next();
   } catch (error) {
     console.error(wlog, 'Middleware: Invalid token.', error);
-    next(new Error('Invalid token')); // Token is invalid, reject connection
+    socket.disconnect(true);
+    socket.emit('error', { message: 'Invalid token' });
+
   }
 });
 io.of('/user').on('connection', (socket) => {
@@ -44,12 +45,11 @@ io.of('/user').on('connection', (socket) => {
     console.log(`socket ${id} has joined room ${room}`);
   });
   io.of('/user').adapter.on('leave-room', (room, id) => {
-    console.log(`socket ${id} has joined room ${room}`);
+    console.log(`socket ${id} has left room ${room}`);
   });
 
   socket.on('task:join', async (relation_id: string) => {
     try {
-      jwt.verify(token, process.env.SECRET || '');
       console.log(wlog + 'User joining relation:', relation_id);
       console.log('clients', io.engine.clientsCount);
       const relation = await getRelationsById(user_id, relation_id);
@@ -59,15 +59,6 @@ io.of('/user').on('connection', (socket) => {
       socket.join(relation.id);
       io.of('/user').to(user_id).emit('task:join:success', relation);
     } catch (error) {
-      if (error instanceof JsonWebTokenError) {
-        console.log(
-          wlog + 'JSONWebTokenError joining relation:',
-          error,
-          socket.rooms
-        );
-        socket.emit('token:error', { message: error.message });
-        return;
-      }
       console.error(wlog + 'Error joining relation:', error);
       socket.emit('error', { message: 'Failed to join relation' });
     }
