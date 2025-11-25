@@ -10,11 +10,9 @@ import {
   TokenDecoded
 } from '@groceries/shared_types';
 import {
-  editTaskBy,
   getRelationsById,
-  postTaskToRelation,
-  removeTaskFromRelation,
 } from './modules/relations/relations.controller';
+import { editTaskBy, postTaskToRelation, removeTaskFromRelation } from './modules/tasks/tasks.controller';
 
 const server = http.createServer(app);
 const io = new Server(server);

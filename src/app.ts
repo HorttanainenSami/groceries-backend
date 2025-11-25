@@ -5,6 +5,7 @@ import ErrorHandler from './middleware/ErrorHandler';
 import requireAuth from './middleware/requireAuth';
 import { router as userRouter } from './modules/user/user.router';
 import { router as relationRouter } from './modules/relations/relations.router';
+import { router as taskRouter } from './modules/tasks/tasks.router';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -23,5 +24,6 @@ app.use(express.json());
 app.use('', authRouter);
 app.use(requireAuth);
 app.use('/user', userRouter);
+app.use('/relations/:relation_id/tasks', taskRouter);
 app.use('/relations', relationRouter);
 app.use(ErrorHandler);
