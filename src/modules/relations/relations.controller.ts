@@ -12,7 +12,6 @@ import {
 import {
   postRelationAndShareWithUserRequestSchema,
   shareRelationWithUserReqSchema,
-  getRelationsByIdReqParams,
   deleteRelationParamsSchema,
   getRelationsResponseSchema,
   TaskRelationType,
@@ -123,22 +122,6 @@ export const shareRelationWithUser = async (
     );
 
     res.status(200).json({ message: 'Relation shared successfully' });
-  } catch (e) {
-    next(e);
-  }
-};
-
-export const getRelationByIdHandler = async (
-  req: Request,
-  res: Response<TaskRelationType>,
-  next: NextFunction
-) => {
-  try {
-    const params = req.params;
-    const { relation_id } = getRelationsByIdReqParams.parse(params);
-    const { id } = decodeTokenFromRequest(req);
-    const relation = await getRelationsById(id, relation_id);
-    res.send(relation);
   } catch (e) {
     next(e);
   }

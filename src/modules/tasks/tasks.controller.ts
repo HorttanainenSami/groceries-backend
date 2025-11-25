@@ -1,31 +1,7 @@
-import { editRelationsTaskByIdReqBodySchema, editRelationsTaskByIdReqParamsSchema, patchTaskSchema, postTaskToRelationReqSchema, removeTaskFromRelationReqParams, TaskType } from "@groceries/shared_types";
-import { NextFunction, Request, Response } from "express";
-import { decodeTokenFromRequest } from "../../resources/utils";
+import { patchTaskSchema,TaskType } from "@groceries/shared_types";
 import { getUserPermission } from "../relations/relations.service";
 import { createTaskForRelation, editTask, getTaskById, removeTask } from "./tasks.service";
 import { AuthenticationError } from "../../middleware/Error.types";
-
-
-
-export const editTaskByIdHandler = async (
-  req: Request,
-  res: Response<TaskType>,
-  next: NextFunction
-) => {
-  try {
-    console.log(req.body);
-    const taskWithoutId = editRelationsTaskByIdReqBodySchema.parse(req.body);
-    const { relation_id, task_id } = editRelationsTaskByIdReqParamsSchema.parse(
-      req.params
-    );
-    const { id } = decodeTokenFromRequest(req);
-    const response = await editTaskBy(id, relation_id, task_id, taskWithoutId);
-    res.send(response);
-  } catch (e) {
-    console.log(e);
-    next(e);
-  }
-};
 
 export const editTaskBy = async (
   id: string,
@@ -51,23 +27,6 @@ export const editTaskBy = async (
 };
 
 
-export const removeTaskFromRelationHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { relation_id, task_id } = removeTaskFromRelationReqParams.parse(
-      req.params
-    );
-    const { id } = decodeTokenFromRequest(req);
-    const response = await removeTaskFromRelation(id, relation_id, task_id);
-    res.send(response);
-  } catch (e) {
-    console.log(e);
-    next(e);
-  }
-};
 
 export const removeTaskFromRelation = async (
   id: string,
@@ -85,21 +44,7 @@ export const removeTaskFromRelation = async (
 };
 
 
-export const postTaskToRelationHandler = async (
-  req: Request,
-  res: Response<TaskType[]|TaskType>,
-  next: NextFunction
-) => {
-  try {
-    const { task } = postTaskToRelationReqSchema.parse(req.body);
-    const { id } = decodeTokenFromRequest(req);
-    //check if user had permission to edit
-    const savedTask = await postTaskToRelation(id, task);
-    res.send(savedTask);
-  } catch (e) {
-    next(e);
-  }
-};
+
 export const postTaskToRelation = async (
   id: string,
   task: Omit<TaskType, 'id'>

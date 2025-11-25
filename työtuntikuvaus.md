@@ -1,3 +1,4 @@
+25.11.25 1h refaktorointi
 25.11.25 2h tyypityksen korjaus yhdenmukaiseksi string datetimeksi
 1.11.25 3h tyypitysten vieminen omaan kirjastoon
 5.6.25 1h Taskien hakeminen socketin avulla ja oikeellisen datan palauttaminen rajapintaan relaation tallettamisen yhteydessä

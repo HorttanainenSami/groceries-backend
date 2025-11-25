@@ -113,7 +113,7 @@ export const getRelationWithTasks = async (
       name: queryRelationById.rows[0].relation_name,
       created_at: queryRelationById.rows[0].relation_created_at.toISOString(),
       relation_location: queryRelationById.rows[0].relation_location,
-      tasks: [...tasks.map(i => ({...i, created_at:i.created_at.toISOString(),completed_at:i.completed_at.toISOString() }))],
+      tasks: [...tasks.map(i => ({...i, created_at:i.created_at.toISOString(),completed_at:i.completed_at!= null?i.completed_at.toISOString():null }))],
     };
   } catch (error) {
     if (error instanceof pgError) {
