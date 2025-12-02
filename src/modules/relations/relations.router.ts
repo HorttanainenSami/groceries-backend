@@ -14,4 +14,4 @@ router.post('/share', postRelationAndShareWithUser);
 router.get('', getRelations);
 router.patch('/:relation_id', changeRelationNameHandler);
 //create new task to relation
-router.delete('/:relation_id', removeRelationFromServerHandler);
+router.delete('/:id', removeRelationFromServerHandler);

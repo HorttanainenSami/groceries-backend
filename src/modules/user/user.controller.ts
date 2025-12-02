@@ -11,7 +11,7 @@ export const getUsersBySearchParams = async (
     console.log('trying to search');
     const parsedQuery = searchQuery.safeParse(req.query);
     console.log(req.query);
-    if (parsedQuery.error) return res.send(200);
+    if (parsedQuery.error) return res.send(400);
     const response = await getUsersByParams(parsedQuery.data);
     res.send(response);
   } catch (error) {

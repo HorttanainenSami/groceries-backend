@@ -1,5 +1,6 @@
 import { AuthenticationError } from '../../middleware/Error.types';
 import { NextFunction, Request, Response } from 'express';
+import { query } from '../../database/connection';
 import {
   grantRelationPermission,
   createTaskRelation,
@@ -11,12 +12,15 @@ import {
 } from './relations.service';
 import {
   postRelationAndShareWithUserRequestSchema,
-  shareRelationWithUserReqSchema,
   deleteRelationParamsSchema,
   getRelationsResponseSchema,
-  TaskRelationType,
+  BasicRelationWithTasksType,
   editRelationNameBodySchema,
-  getRelationsResponseType
+  getRelationsResponseType,
+  BasicRelationType,
+  UserType,
+  ServerRelationType,
+  ServerRelationWithTasksType
 } from '@groceries/shared_types';
 import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
@@ -29,47 +33,33 @@ export const postRelationAndShareWithUser = async (
   next: NextFunction
 ) => {
   console.log('Hello from postRelationAndShareWithUser');
-  const txQuery = transactionQuery(await transactionClient());
   try {
-    await txQuery('BEGIN', []);
     console.log(req.body);
     const { task_relations, user_shared_with } =
-      postRelationAndShareWithUserRequestSchema.parse(req.body);
+    postRelationAndShareWithUserRequestSchema.parse(req.body);
     const { id } = decodeTokenFromRequest(req);
+    const response = await create_and_share_relations( task_relations, user_shared_with, id);
+    return res.send(response);
+    
+  } catch (e) {
+    console.log('ROLLING BACK ', e);
+    next(e);
+  }
+};
+export const create_and_share_relations = async (task_relations:BasicRelationWithTasksType[], user_shared_with: string, id: string ) => {
+  const client = await transactionClient();
+  const txQuery = transactionQuery(client);
 
-    const create_relation_and_grant_permissions = async (relation: TaskRelationType) => {
-      const newRelation = await createTaskRelation(relation,
-        txQuery
-      );
-      console.log(newRelation, "******************", newRelation.created_at, " typeof ", typeof newRelation.created_at)
-      await grantRelationPermission(
-        { id },
-        { id: newRelation.id },
-        { permission: 'owner' },
-        txQuery
-      );
-      await grantRelationPermission(
-        { id: user_shared_with },
-        { id: newRelation.id },
-        { permission: 'edit' },
-        txQuery
-      );
-      if (relation.tasks.length === 0) return newRelation;
-      const tasks = relation.tasks.map((task) => ({
-        ...task,
-        task_relations_id: newRelation.id,
-      }));
-      await createTaskForRelation(tasks, txQuery);
-      return newRelation;
-    }
-
+  try{
+    await txQuery('BEGIN', []);
     //create relations
     const initialRelations = await Promise.all(
-      task_relations.map(async (relation) => create_relation_and_grant_permissions(relation))
+      task_relations.map(async (relation) => create_relation_and_grant_permissions(id, user_shared_with, relation, txQuery))
     );
     await txQuery('COMMIT', []);
     console.log('COMMITED');
     const sharedWith = await getUserById(user_shared_with, txQuery);
+    client.release();
     //add collaboratiors for relations
     console.log(initialRelations[0].created_at, " ******************* ", typeof initialRelations[0].created_at)
     const parsedResponse = getRelationsResponseSchema
@@ -84,53 +74,44 @@ export const postRelationAndShareWithUser = async (
         }))
       );
     console.log('parsedResponse', parsedResponse);
-    res.send(parsedResponse);
+    return parsedResponse;
   } catch (e) {
     await txQuery('ROLLBACK', []);
     console.log('ROLLING BACK ', e);
-    next(e);
+    client.release();
+    throw Error('something went wrong')
   }
-};
+}
+const create_relation_and_grant_permissions = async (id: string, user_shared_with: string, relation: BasicRelationWithTasksType, txQuery: typeof query) => {
+  const newRelation = await createTaskRelation(relation,
+    txQuery
+  );
+  await grantRelationPermission(
+    { id },
+    { id: newRelation.id },
+    { permission: 'owner' },
+    txQuery
+  );
+  await grantRelationPermission(
+    { id: user_shared_with },
+    { id: newRelation.id },
+    { permission: 'edit' },
+    txQuery
+  );
+  if (relation.tasks.length === 0) return newRelation;
+  const tasks = relation.tasks.map((task) => ({
+    ...task,
+    task_relations_id: newRelation.id,
+  }));
+  await createTaskForRelation(tasks, txQuery);
+  return newRelation;
+}
 
-
-export const shareRelationWithUser = async (
-  req: Request,
-  res: Response<{message: string}>,
-  next: NextFunction
-) => {
-  try {
-    const { task_relations_id, user_id } = shareRelationWithUserReqSchema.parse(
-      req.body
-    );
-
-    const { id } = decodeTokenFromRequest(req);
-    //check if token owner is owner of relation
-    const { permission } = await getUserPermission(
-      { id },
-      { id: task_relations_id }
-    );
-    if (permission !== 'owner')
-      throw new AuthenticationError(
-        'User does not have permission to edit this list'
-      );
-
-    //share relation with user
-    await grantRelationPermission(
-      { id: user_id },
-      { id: task_relations_id },
-      { permission: 'edit' }
-    );
-
-    res.status(200).json({ message: 'Relation shared successfully' });
-  } catch (e) {
-    next(e);
-  }
-};
 
 export const getRelationsById = async (
   user_id: string,
   relation_id: string
-): Promise<TaskRelationType> => {
+): Promise<ServerRelationWithTasksType> => {
   try {
     await getUserPermission({ id: user_id }, { id: relation_id });
     const relation = await getRelationWithTasks({ id: relation_id });
@@ -158,7 +139,6 @@ export const getRelations = async (
 };
 
 
-
 export const removeRelationFromServerHandler = async (
   req: Request,
   res: Response,
@@ -166,21 +146,24 @@ export const removeRelationFromServerHandler = async (
 ) => {
   try {
     const { id } = decodeTokenFromRequest(req);
-    const { relation_id } = deleteRelationParamsSchema.parse(req.params);
+    console.log(req.params);
+    const relation_id = deleteRelationParamsSchema.parse(req.params);
     if (Array.isArray(relation_id)) {
-      const promises = relation_id.map((relId) =>
-        removeRelationFromServer(id, relId)
-      );
-      const responses = await Promise.all(promises);
+      const responses = await removeMultipleRelations({id}, relation_id)
       return res.status(200).send(responses);
     }
-    const response = await removeRelationFromServer(id, relation_id);
+    const response = await removeRelationFromServer(id, relation_id.id);
     res.status(200).send(response);
   } catch (e) {
     console.log(e);
     next(e);
   }
 };
+export const removeMultipleRelations= async ({id:user_id}: Pick<UserType, 'id'>, ids: Pick<BasicRelationType, 'id'>[]) => {
+  const promises = ids.map(({id }) => removeRelationFromServer(user_id, id));
+  const responses = await Promise.all(promises);
+  return responses;
+}
 export const removeRelationFromServer = async (
   user_id: string,
   relation_id: string
@@ -217,7 +200,7 @@ export const changeRelationNameHandler = async (
 export const changeRelationName = async (
   relation_id: string,
   newName: string
-): Promise<Omit<TaskRelationType, 'tasks'>> => {
+): Promise<ServerRelationType> => {
   try {
     const updatedRelation = await editRelationsName(relation_id, newName);
     return updatedRelation;

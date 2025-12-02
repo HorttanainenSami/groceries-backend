@@ -1,3 +1,4 @@
+2.12.25 8h socketin tyypitys ja toiminnallisuuksien erotteleminen omiin tiedostoihinsa. Toiminnallisuuksien lisäys socketille
 25.11.25 1h refaktorointi
 25.11.25 2h tyypityksen korjaus yhdenmukaiseksi string datetimeksi
 1.11.25 3h tyypitysten vieminen omaan kirjastoon

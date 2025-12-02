@@ -1,68 +1,68 @@
-import { Socket, Server } from 'socket.io';
 import {
-  baseTaskSchema,
+  SocketType,
+  ServerType,
+  basicTaskSchema,
   editTaskSchema,
-  TaskType,
 } from '@groceries/shared_types';
 import {
   getRelationsById,
 } from '../relations/relations.controller';
 import { editTaskBy, postTaskToRelation, removeTaskFromRelation } from './tasks.controller';
+import { notifyCollaborators } from '../..';
 
 
-export const taskHandlers = (io:Server, socket:Socket) =>{
-  const user_id = socket.data.user_id;
-  socket.on('task:join', async (relation_id: string) => {
+export const taskSocketHandlers = (io:ServerType, socket:SocketType) =>{
+  const user_id = socket.data.id;
+  socket.on('task:join', async ({relation_id}, cb) => {
     try {
       console.log('clients', io.engine.clientsCount);
       const relation = await getRelationsById(user_id, relation_id);
-      if (!relation) {
-        throw new Error('Relation not found');
-      }
       socket.join(relation.id);
-      io.of('/user').to(user_id).emit('task:join:success', relation);
+      cb({success:true, data: relation});
     } catch (error) {
-      socket.emit('error', { message: 'Failed to join relation' });
+      cb({ success: false, error:'Failed to join relation' });
     }
   });
-  socket.on('task:create', async (data: TaskType) => {
+  socket.on('task:create', async ({new_task}, callback) => {
     try {
-      const parsedTask = baseTaskSchema.omit({ id: true }).parse(data);
-      const sql_data = await postTaskToRelation(user_id, parsedTask);
+      const parsed_task = basicTaskSchema.omit({ id: true }).parse(new_task);
+      const stored_task = await postTaskToRelation(user_id, parsed_task);
 
-      io.of('/user').to(data.task_relations_id).emit('task:created', sql_data);
+      callback({success: true, data: stored_task});
+      notifyCollaborators(new_task.task_relations_id, user_id, 'task:create', stored_task);
     } catch (error) {
-      socket.emit('error', { message: 'Failed to create task' });
+      callback({success:false, error: 'Failed to create task' });
     }
   });
 
-  socket.on('task:edit', async (data: TaskType) => {
+  socket.on('task:edit', async ({edited_task}, callback) => {
     try {
-      const parsedTask = editTaskSchema.parse(data);
-      const sql_data = await editTaskBy(
+      const parsedTask = editTaskSchema.parse(edited_task);
+      const new_task = await editTaskBy(
         user_id,
         parsedTask.task_relations_id,
         parsedTask.id,
         parsedTask
       );
-      io.of('/user').to(data.task_relations_id).emit('task:edited', sql_data);
+      callback({success:true, data: new_task})
+      notifyCollaborators(new_task.task_relations_id, user_id, 'task:edit', new_task);
+
     } catch (error) {
-      socket.emit('error', { message: 'Failed to edit task' });
+      callback({success: false, error: 'Failed to edit task' });
     }
   });
 
-  socket.on('task:remove', async (data: TaskType[]) => {
+  socket.on('task:remove', async ({remove_tasks}, callback) => {
     try {
-      const parsedTask = baseTaskSchema.array().parse(data);
-      const sql_data = await Promise.all(
+      const parsedTask = basicTaskSchema.array().parse(remove_tasks);
+      const removed_tasks = await Promise.all(
         parsedTask.map((t) =>
           removeTaskFromRelation(user_id, t.task_relations_id, t.id)
         )
       );
-      console.log(data[0].task_relations_id, 'sql_data', sql_data);
-      io.of('/user')
-        .to(data[0].task_relations_id)
-        .emit('task:removed', sql_data);
+      callback({success: true, data: removed_tasks})
+      notifyCollaborators(parsedTask[0].task_relations_id, user_id, 'task:remove', removed_tasks);
+
     } catch (error) {
       socket.emit('error', { message: 'Failed to toggle task' });
     }

@@ -1,6 +1,6 @@
 import { patchTaskSchema,TaskType } from "@groceries/shared_types";
 import { getUserPermission } from "../relations/relations.service";
-import { createTaskForRelation, editTask, getTaskById, removeTask } from "./tasks.service";
+import { createSingleTaskForRelation, editTask, getTaskById, removeTask } from "./tasks.service";
 import { AuthenticationError } from "../../middleware/Error.types";
 
 export const editTaskBy = async (
@@ -48,7 +48,7 @@ export const removeTaskFromRelation = async (
 export const postTaskToRelation = async (
   id: string,
   task: Omit<TaskType, 'id'>
-) => {
+):Promise<TaskType> => {
   try {
     //check if user had permission to edit
     const permission = await getUserPermission(
@@ -60,7 +60,7 @@ export const postTaskToRelation = async (
         'User does not have permission to edit this relation'
       );
 
-    const promise = await createTaskForRelation(task);
+    const promise = await createSingleTaskForRelation(task);
     //send lists to server
     return promise;
   } catch (e) {

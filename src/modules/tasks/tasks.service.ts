@@ -102,7 +102,7 @@ export const editTask = async ({
   task,
   completed_at,
   completed_by,
-}: Pick<TaskType, 'completed_at' | 'completed_by' | 'task' | 'id'>) => {
+}: TaskType) => {
   try {
     const update_query = `
       UPDATE TASK SET task=$2, completed_by=$3, completed_at=$4 WHERE id = $1 RETURNING *;

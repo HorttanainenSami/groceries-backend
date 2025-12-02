@@ -8,24 +8,26 @@ import {
 import {
   UserType,
   permissionSchema,
-  TaskRelationType,
+  BasicRelationWithTasksType,
   PermissionType,
   getRelationByIdQueryResponseType,
   getRelationsResponseType,
-  TaskRelationsBasicType,
+  BasicRelationType,
+  ServerRelationType,
+  ServerRelationWithTasksType,
 } from '@groceries/shared_types';
 
-type createTaskRelationResponseType = Omit<TaskRelationType, 'tasks'|'created_at'>&{ created_at: Date}
+type createTaskRelationResponseType = Omit<ServerRelationType, 'created_at'>&{ created_at: Date}
 export const createTaskRelation = async (
-  relation: TaskRelationType,
+  relation: BasicRelationWithTasksType,
   queryOrTxQuery?: typeof query
-) => {
+): Promise<ServerRelationType> => {
   if (queryOrTxQuery === undefined) {
     queryOrTxQuery = query;
   }
   try {
     const create_relation_query = await queryOrTxQuery<
-      Omit<createTaskRelationResponseType, 'tasks'>
+     createTaskRelationResponseType
     >(
       `
       INSERT INTO Task_relation( name, created_at)
@@ -37,7 +39,7 @@ export const createTaskRelation = async (
 
     return create_relation_query
     .rows
-    .map((item:createTaskRelationResponseType)  => ({...item, created_at: item.created_at.toISOString()}))[0];
+    .map((item)  => ({...item, created_at: item.created_at.toISOString()}))[0];
   } catch (error) {
     if (error instanceof ApplicationError) {
       console.error('Application error:', error);
@@ -52,9 +54,9 @@ export const createTaskRelation = async (
 };
 
 export const getRelationWithTasks = async (
-  task_relation_id: Pick<TaskRelationType, 'id'>,
+  task_relation_id: Pick<BasicRelationWithTasksType, 'id'>,
   txQuery?: typeof query
-): Promise<TaskRelationType> => {
+): Promise<ServerRelationWithTasksType> => {
   if (txQuery === undefined) {
     txQuery = query;
   }
@@ -125,10 +127,10 @@ export const getRelationWithTasks = async (
   }
 };
 export const removeRelation = async (
-  task_relation_id: Pick<TaskRelationType, 'id'>
+  task_relation_id: Pick<BasicRelationWithTasksType, 'id'>
 ) => {
   try {
-    const q = await query<Pick<TaskRelationsBasicType, 'id'>>(
+    const q = await query<Pick<BasicRelationType, 'id'>>(
       `
         DELETE FROM Task_relation WHERE id = $1 RETURNING id;
       `,
@@ -144,10 +146,10 @@ export const removeRelation = async (
     throw error;
   }
 };
-type getAllRelationsResponseType = Omit<getRelationsResponseType, 'tasks'|'created_at'> & {created_at:Date}
-export const getAllRelations = async (user_id: Pick<UserType, 'id'>) => {
+type getAllRelationsResponseType = Omit<getRelationsResponseType, 'created_at'> & {created_at:Date}
+export const getAllRelations = async (user: Pick<UserType, 'id'>) => {
   try {
-    console.log(user_id);
+    console.log(user);
     const q = await query<getAllRelationsResponseType>(
       `
       SELECT 
@@ -171,7 +173,7 @@ export const getAllRelations = async (user_id: Pick<UserType, 'id'>) => {
 
       `,
 
-      [user_id.id]
+      [user.id]
     );
     return q.rows.map(i => ({...i, created_at:i.created_at.toISOString()}));
   } catch (error) {
@@ -184,7 +186,7 @@ export const getAllRelations = async (user_id: Pick<UserType, 'id'>) => {
   }
 };
 
-type getRelationByIdResponseType = Omit<getRelationsResponseType, 'tasks'|'created_at'> & {created_at: Date}
+type getRelationByIdResponseType = Omit<getRelationsResponseType, 'created_at'> & {created_at: Date}
 export const getRelationById = async (relation_id: string, user_id: Pick<UserType, 'id'>) => {
   try {
     console.log(user_id);
@@ -226,7 +228,7 @@ export const getRelationById = async (relation_id: string, user_id: Pick<UserTyp
 
 export const getUserPermission = async (
   user_id: Pick<UserType, 'id'>,
-  task_relation_id: Pick<TaskRelationType, 'id'>
+  task_relation_id: Pick<BasicRelationWithTasksType, 'id'>
 ): Promise<PermissionType> => {
   try {
     const q = await query<PermissionType>(
@@ -265,7 +267,7 @@ export const getUserPermission = async (
 
 export const grantRelationPermission = async (
   user_id: Pick<UserType, 'id'>,
-  task_relation_id: Pick<TaskRelationType, 'id'>,
+  task_relation_id: Pick<BasicRelationWithTasksType, 'id'>,
   permission: PermissionType,
   queryOrTxQuery?: typeof query
 ) => {
@@ -298,12 +300,29 @@ export const grantRelationPermission = async (
     throw error;
   }
 };
+export const getCollaborators = async (
+  {id}: Pick<ServerRelationType, 'id'>
+): Promise<Pick<UserType, 'id'>[]> => {
+  try{
+    const q = await query<Pick<UserType, 'id'>>(
+      `
+        SELECT user_id as id FROM task_permissions WHERE task_relation_id = $1;
+      `,[id]
+    )
+    return q.rows;
+  } catch(e){
+    throw Error('Error'+ e);
+  }
 
-type editRelationsNameResponseType = Omit<TaskRelationsBasicType, 'created_at'> & {created_at: Date}
+
+
+}
+
+type editRelationsNameResponseType = Omit<ServerRelationType, 'created_at'> & {created_at: Date}
 export const editRelationsName = async (
   id: string,
   newName: string,
-) => {
+): Promise<ServerRelationType> => {
   try {
     const result = await query<editRelationsNameResponseType>(
       'UPDATE task_relation SET name = $1 WHERE id = $2 RETURNING *',

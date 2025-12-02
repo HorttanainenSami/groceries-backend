@@ -4,11 +4,20 @@ import { Server } from 'socket.io';
 import { decodeToken } from './resources/utils';
 import jwt from 'jsonwebtoken';
 import {
-  TokenDecoded
+  SocketType,
+  ClientToServerEvents, 
+  ServerToClientEvents, 
+  InterServerEvents, 
+  SocketData,
+  TokenDecoded,
+  UserType
 } from '@groceries/shared_types';
-import {taskHandlers} from './modules/tasks/tasks.socket';
+import {taskSocketHandlers} from './modules/tasks/tasks.socket';
+import { relationsSocketHandler } from './modules/relations/relations.socket';
+import { getCollaborators } from './modules/relations/relations.service';
+
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(server);
 const wlog = '*************WEBSOCKET***********';
 
 //auth middleware
@@ -21,38 +30,41 @@ io.of('/user').use((socket, next) => {
   try {
     jwt.verify(token, process.env.SECRET || '');
     const decodedToken= decodeToken<TokenDecoded>(token);
-    socket.data.user_id= decodedToken.id;
+    socket.data.id= decodedToken.id;
     socket.data.email = decodedToken.email;
     next();
   } catch (error) {
     console.error(wlog, 'Middleware: Invalid token.', error);
-    socket.disconnect(true);
     socket.emit('error', { message: 'Invalid token' });
+    socket.disconnect(true);
 
   }
 });
 
+const onConnection = (socket: SocketType) => {
+  taskSocketHandlers(io, socket);
+  relationsSocketHandler(io, socket);
+}
 
-io.of('/user').on('connection', (socket) => {
-  socket.join(socket.data.user_id);
-  io.of('/user').adapter.on('join-room', (room, id) => {
-    console.log(`socket ${id} has joined room ${room}`);
-  });
-  io.of('/user').adapter.on('leave-room', (room, id) => {
-    console.log(`socket ${id} has left room ${room}`);
-  });
-  taskHandlers(io, socket);
-  
-  socket.on('disconnect', (reason) => {
-    console.log(wlog + 'user disconnected', reason);
-  });
-  socket.on('error', (error) => {
-    console.error(wlog + 'Socket error:', error);
-  });
-});
+io.of('/user').on('connection', onConnection);
 
 const port = 3003;
 
 server.listen(port, () => {
   return console.log(`Express is listening at http://localhost:${port}`);
 });
+
+export const notifyCollaborators = async (
+  relationId: string,
+  currentUserId: string,
+  eventName: keyof ServerToClientEvents,
+  data: any
+) => {
+  const collaborators = await getCollaborators({id: relationId});
+
+  collaborators
+    .filter(({id}) => id !== currentUserId)
+    .forEach(({id}) => {
+      io.of('/user').to(id).emit(eventName, data);
+    });
+};
