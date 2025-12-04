@@ -30,7 +30,7 @@ export const relationsSocketHandler = (
   socket.on('relations:change_name', async (payload, cb) => {
     try {
       const {id, name} = socketRelationChangeNamePayload.parse(payload);
-      const response = await changeRelationName(id, name);
+      const response = await changeRelationName(id, name, user_id);
       cb({success:true, data:response});
       await notifyCollaborators(id,user_id,'relations:change_name', response);
     } catch(e) {
@@ -52,8 +52,8 @@ export const relationsSocketHandler = (
     }else{
       const res = await removeRelationFromServer(user_id, parsed.id);
 
-      cb({ success: true, data: res });
-      await notifyCollaborators(parsed.id, user_id, 'relations:delete', res);
+      cb({ success: true, data: [res] });
+      await notifyCollaborators(parsed.id, user_id, 'relations:delete', [res]);
     }
 
   } catch (e) {

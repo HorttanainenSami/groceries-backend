@@ -13,23 +13,23 @@ import {
 import {
   postRelationAndShareWithUserRequestSchema,
   deleteRelationParamsSchema,
-  getRelationsResponseSchema,
   BasicRelationWithTasksType,
   editRelationNameBodySchema,
   getRelationsResponseType,
   BasicRelationType,
   UserType,
   ServerRelationType,
-  ServerRelationWithTasksType
+  ServerRelationWithTasksType,
+  LocalRelationWithTasksType,
+  ServerRelationWithTasksAndPermissionsType
 } from '@groceries/shared_types';
 import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
-import { getUserById } from '../user/user.service';
 import { createTaskForRelation } from '../tasks/tasks.service';
 
 export const postRelationAndShareWithUser = async (
   req: Request,
-  res: Response<getRelationsResponseType[]>,
+  res: Response<ServerRelationWithTasksAndPermissionsType[]>,
   next: NextFunction
 ) => {
   console.log('Hello from postRelationAndShareWithUser');
@@ -42,39 +42,29 @@ export const postRelationAndShareWithUser = async (
     return res.send(response);
     
   } catch (e) {
-    console.log('ROLLING BACK ', e);
     next(e);
   }
 };
-export const create_and_share_relations = async (task_relations:BasicRelationWithTasksType[], user_shared_with: string, id: string ) => {
+export const create_and_share_relations = async (relations_with_tasks:BasicRelationWithTasksType[], user_shared_with: string, id: string ) => {
   const client = await transactionClient();
   const txQuery = transactionQuery(client);
 
   try{
     await txQuery('BEGIN', []);
     //create relations
-    const initialRelations = await Promise.all(
-      task_relations.map(async (relation) => create_relation_and_grant_permissions(id, user_shared_with, relation, txQuery))
-    );
+    const local_relations= relations_with_tasks.filter(r => r.relation_location==='Local') as LocalRelationWithTasksType[];
+    const server_relations = relations_with_tasks.filter(r => r.relation_location ==='Server') as ServerRelationWithTasksType[];
+    const stored_local_relations_promise = local_relations
+        .map(async (relation) => create_relation_and_grant_permissions(id, user_shared_with, relation, txQuery));
+    const grant_permission_promise = server_relations.map(r => grant_permission_and_get_relation_with_tasks(id, user_shared_with, r, txQuery));
+    
+    const response = await Promise.all([Promise.all(stored_local_relations_promise), Promise.all(grant_permission_promise)]);
+
     await txQuery('COMMIT', []);
     console.log('COMMITED');
-    const sharedWith = await getUserById(user_shared_with, txQuery);
     client.release();
-    //add collaboratiors for relations
-    console.log(initialRelations[0].created_at, " ******************* ", typeof initialRelations[0].created_at)
-    const parsedResponse = getRelationsResponseSchema
-      .array()
-      .parse(
-        initialRelations.map((r) => ({
-          ...r,
-          my_permission: 'owner',
-          shared_with_id: sharedWith.id,
-          shared_with_name: sharedWith.name,
-          shared_with_email: sharedWith.email,
-        }))
-      );
-    console.log('parsedResponse', parsedResponse);
-    return parsedResponse;
+    console.log('parsedResponse', response);
+    return [...response[0], ...response[1]];
   } catch (e) {
     await txQuery('ROLLBACK', []);
     console.log('ROLLING BACK ', e);
@@ -82,42 +72,51 @@ export const create_and_share_relations = async (task_relations:BasicRelationWit
     throw Error('something went wrong')
   }
 }
-const create_relation_and_grant_permissions = async (id: string, user_shared_with: string, relation: BasicRelationWithTasksType, txQuery: typeof query) => {
-  const newRelation = await createTaskRelation(relation,
+const create_relation_and_grant_permissions = async (id: string, user_shared_with: string, relation: LocalRelationWithTasksType, txQuery: typeof query):Promise<ServerRelationWithTasksAndPermissionsType>  => {
+  const new_server_relation = await createTaskRelation(relation,
     txQuery
   );
+  const server_relation_with_info = await grant_permission_and_get_relation_with_tasks(id, user_shared_with, new_server_relation, txQuery);
+  if (relation.tasks.length === 0) return server_relation_with_info;
+  const init_tasks = relation.tasks.map((task) => ({
+    ...task,
+    task_relations_id: new_server_relation.id,
+  }));
+  const server_stored_tasks = await createTaskForRelation(init_tasks, txQuery);
+  const return_tasks = server_stored_tasks ?
+   Array.isArray(server_stored_tasks)
+   ?server_stored_tasks:
+   [server_stored_tasks]
+   :[];
+  const response = {...server_relation_with_info, tasks: return_tasks};
+  return response;
+}
+
+const grant_permission_and_get_relation_with_tasks = async (id: string, user_shared_with: string, relation: ServerRelationType, txQuery: typeof query):Promise<ServerRelationWithTasksAndPermissionsType>  => {
+  
   await grantRelationPermission(
     { id },
-    { id: newRelation.id },
+    { id: relation.id },
     { permission: 'owner' },
     txQuery
   );
   await grantRelationPermission(
     { id: user_shared_with },
-    { id: newRelation.id },
+    { id: relation.id },
     { permission: 'edit' },
     txQuery
   );
-  if (relation.tasks.length === 0) return newRelation;
-  const tasks = relation.tasks.map((task) => ({
-    ...task,
-    task_relations_id: newRelation.id,
-  }));
-  await createTaskForRelation(tasks, txQuery);
-  return newRelation;
+ 
+  const response = await getRelationWithTasks({id: relation.id},{id}, txQuery);
+  return response;
 }
-
-
 export const getRelationsById = async (
   user_id: string,
   relation_id: string
-): Promise<ServerRelationWithTasksType> => {
+): Promise<ServerRelationWithTasksAndPermissionsType> => {
   try {
     await getUserPermission({ id: user_id }, { id: relation_id });
-    const relation = await getRelationWithTasks({ id: relation_id });
-    if (!relation) {
-      throw new Error('Relation not found');
-    }
+    const relation = await getRelationWithTasks({ id: relation_id }, {id: user_id});
     return relation;
   } catch (e) {
     console.error('Error fetching relation by ID:', e);
@@ -190,7 +189,7 @@ export const changeRelationNameHandler = async (
       req.body
     );
     await getUserPermission({ id }, { id: relation_id });
-    const response = await changeRelationName(relation_id, new_name);
+    const response = await changeRelationName(relation_id, new_name, id);
     res.send(response);
   } catch (e) {
     console.log(e);
@@ -199,13 +198,21 @@ export const changeRelationNameHandler = async (
 };
 export const changeRelationName = async (
   relation_id: string,
-  newName: string
-): Promise<ServerRelationType> => {
+  newName: string,
+  user_id: string
+): Promise<getRelationsResponseType> => {
+  const client = await transactionClient();
+  const txQuery = transactionQuery(client);
   try {
-    const updatedRelation = await editRelationsName(relation_id, newName);
+    await txQuery('BEGIN', []);
+    const updatedRelation = await editRelationsName( relation_id, newName,user_id, txQuery);
+    await txQuery('COMMIT', []);
     return updatedRelation;
   } catch (e) {
     console.error('Error changing relation name:', e);
+    await txQuery('ROLLBACK',[]);
     throw e;
+  } finally{
+    client.release();
   }
 };

@@ -35,9 +35,8 @@ io.of('/user').use((socket, next) => {
     next();
   } catch (error) {
     console.error(wlog, 'Middleware: Invalid token.', error);
-    socket.emit('error', { message: 'Invalid token' });
     socket.disconnect(true);
-
+    return next(new Error('Invalid token'))
   }
 });
 
@@ -60,7 +59,7 @@ export const notifyCollaborators = async (
   eventName: keyof ServerToClientEvents,
   data: any
 ) => {
-  const collaborators = await getCollaborators({id: relationId});
+  const collaborators = await getCollaborators({id:currentUserId}, {id: relationId});
 
   collaborators
     .filter(({id}) => id !== currentUserId)
