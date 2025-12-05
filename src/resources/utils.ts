@@ -21,20 +21,16 @@ export const getTokenFrom = (req: Request) => {
   }
 };
 export function decodeTokenFromRequest(request: Request) {
-  try {
-    const token = getTokenFrom(request);
-    const userInfo = decodeToken<TokenDecoded>(token);
-    return userInfo;
-  } catch(e) {
-    throw e;
-  }
+  const token = getTokenFrom(request);
+  const userInfo = decodeToken<TokenDecoded>(token);
+  return userInfo;
 }
 
 export function decodeToken<T>(token: string) {
   try {
     const decoded = jwt.verify(token, secret()) as T;
     return decoded as T;
-  } catch{
+  } catch {
     throw new JsonWebTokenError('Invalid/malformed token');
   }
 }

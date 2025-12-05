@@ -1,3 +1,4 @@
+5.12.25 1h Eslintin ja prettierin conffaus. Lintteri virheilmoitusten korjaus
 4.12.25 4h korjattu null tarkastukset , parannettu transaction, päivitetty sockettien tyypitystä. relatioon jakamis toiminto socketille.
 2.12.25 8h socketin tyypitys ja toiminnallisuuksien erotteleminen omiin tiedostoihinsa. Toiminnallisuuksien lisäys socketille
 25.11.25 1h refaktorointi
@@ -16,3 +17,5 @@ pysyväistallennus 2h
 autentikaation luominen 3h
 routerien luominen 3h
 Projektin luominen ja conffaus 2h
+
+65.5h

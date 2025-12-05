@@ -2,11 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { getUsersByParams } from './user.service';
 import { searchQuery } from '@groceries/shared_types';
 
-export const getUsersBySearchParams = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const getUsersBySearchParams = async (req: Request, res: Response, next: NextFunction) => {
   try {
     console.log('trying to search');
     const parsedQuery = searchQuery.safeParse(req.query);

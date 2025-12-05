@@ -22,7 +22,6 @@ describe('Auth Controller', () => {
     req = {};
     res = {
       send: jest.fn(),
-      
     };
     next = jest.fn();
   });
@@ -33,7 +32,11 @@ describe('Auth Controller', () => {
 
   describe('register', () => {
     it('should create a new user and return the user without the password', async () => {
-      const mockUser = { email: 'test@example.com', name: 'Test User', password: 'hashed-password' };
+      const mockUser = {
+        email: 'test@example.com',
+        name: 'Test User',
+        password: 'hashed-password',
+      };
       const mockCreatedUser = { email: 'test@example.com', name: 'Test User', id: 1 };
 
       req.body = { email: 'test@example.com', name: 'Test User', password: 'password123' };
@@ -86,11 +89,9 @@ describe('Auth Controller', () => {
 
       expect(userApi.getUserByEmail).toHaveBeenCalledWith(req.body);
       expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed-password');
-      expect(jwt.sign).toHaveBeenCalledWith(
-        { email: 'test@example.com', id: 1 },
-        'test-secret',
-        { expiresIn: '24h' }
-      );
+      expect(jwt.sign).toHaveBeenCalledWith({ email: 'test@example.com', id: 1 }, 'test-secret', {
+        expiresIn: '24h',
+      });
       expect(res.send).toHaveBeenCalledWith({
         token: mockToken,
         email: 'test@example.com',
@@ -144,7 +145,7 @@ describe('Auth Controller', () => {
     it('should call next with an AuthenticationError if provided credentials are wrong type', async () => {
       const mockError = new AuthenticationError('Invalid credentials');
 
-      req.body = { email: 'test@example.com'};
+      req.body = { email: 'test@example.com' };
 
       await login(req as Request, res as Response, next as NextFunction);
 

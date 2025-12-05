@@ -28,17 +28,19 @@ const populate_database_with_users = async () => {
     name: 'test_2',
   };
   const password = jwt.sign(user1.password, process.env.SECRET || 'secret');
-  await query(
-    'INSERT INTO users (email, password, name ) values ($1, $2, $3) returning *;',
-    [user1.email, password, user1.name]
-  ).then((result) => {
+  await query('INSERT INTO users (email, password, name ) values ($1, $2, $3) returning *;', [
+    user1.email,
+    password,
+    user1.name,
+  ]).then((result) => {
     user_1 = { ...result.rows[0] } as UserType;
   });
   const password_2 = jwt.sign(user2.password, process.env.SECRET || 'secret');
-  await query(
-    'INSERT INTO users (email, password, name ) values ($1, $2, $3) returning *;',
-    [user2.email, password_2, user2.name]
-  ).then((result) => {
+  await query('INSERT INTO users (email, password, name ) values ($1, $2, $3) returning *;', [
+    user2.email,
+    password_2,
+    user2.name,
+  ]).then((result) => {
     user_2 = { ...result.rows[0] } as UserType;
   });
 };
@@ -85,10 +87,7 @@ describe('POST /relations/share', () => {
     it('should have user in database', async () => {
       const response = await request(app)
         .get('/user/search?name=')
-        .set(
-          'Authorization',
-          'Bearer ' + jwt.sign(user_1, process.env.SECRET || 'secret')
-        )
+        .set('Authorization', 'Bearer ' + jwt.sign(user_1, process.env.SECRET || 'secret'))
         .send();
       expect(response.status).toBe(200);
       expect(response.body).toEqual([
@@ -154,13 +153,9 @@ describe('POST /relations/share', () => {
         });
 
       expect(response.status).toBe(200);
-      // eslint-disable-next-line
+
       const body = response.body.map(
-        ({
-          id: _id,
-          created_at: _created_at,
-          ...rest
-        }: Omit<TaskRelationType, 'tasks'>) => ({
+        ({ id: _id, created_at: _created_at, ...rest }: Omit<TaskRelationType, 'tasks'>) => ({
           ...rest,
         })
       );
@@ -207,9 +202,7 @@ describe('POST /relations/share', () => {
           user_shared_with: user_id_not_exist,
         });
       expect(response_2.status).toBe(500);
-      expect(response_2.body.error).toBe(
-        'Error in communicating with database'
-      );
+      expect(response_2.body.error).toBe('Error in communicating with database');
 
       const response_3 = await request(app)
         .get('/relations')
@@ -326,7 +319,7 @@ describe('GET /relations', () => {
         .set('Authorization', 'Bearer ' + token)
         .send();
       expect(response.status).toBe(200);
-      // eslint-disable-next-line
+
       expect(response.body.length).toEqual(3);
     });
   });

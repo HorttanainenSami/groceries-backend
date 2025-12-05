@@ -1,8 +1,5 @@
 import { query } from '../../../../database/connection';
-import {
-  AuthenticationError,
-  DatabaseError,
-} from '../../../../middleware/Error.types';
+import { AuthenticationError, DatabaseError } from '../../../../middleware/Error.types';
 import AuthService from '../../../../modules/auth/auth.service';
 import { DatabaseError as pgError } from 'pg';
 import bcrypt from 'bcrypt';
@@ -42,15 +39,10 @@ describe('AuthService', () => {
         password: 'hashed-password',
       };
       const mockError = new pgError('Database error', 1, 'parseComplete');
-      const mockResponseError = new DatabaseError(
-        'Failed to create user',
-        mockError
-      );
+      const mockResponseError = new DatabaseError('Failed to create user', mockError);
       (query as jest.Mock).mockRejectedValue(mockError);
 
-      await expect(AuthService.createUser(mockUser)).rejects.toThrow(
-        mockResponseError
-      );
+      await expect(AuthService.createUser(mockUser)).rejects.toThrow(mockResponseError);
     });
   });
 
@@ -73,27 +65,21 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      await expect(AuthService.getUserByEmail(mockUser)).resolves.toStrictEqual(
-        mockResponse
-      );
+      await expect(AuthService.getUserByEmail(mockUser)).resolves.toStrictEqual(mockResponse);
     });
     it('should return AuthenticationError if email is not correct', async () => {
       const mockUser = {
         email: 'test@test.com',
         password: 'hashed-password',
       };
-      const mockError = new AuthenticationError(
-        'Email and/or password is wrong!'
-      );
+      const mockError = new AuthenticationError('Email and/or password is wrong!');
 
       (query as jest.Mock).mockResolvedValue({
         rows: [],
         rowCount: 0,
       });
 
-      await expect(AuthService.getUserByEmail(mockUser)).rejects.toThrow(
-        mockError
-      );
+      await expect(AuthService.getUserByEmail(mockUser)).rejects.toThrow(mockError);
     });
     it('should return AuthenticationError if passwords doesnt match', async () => {
       const mockUser = {
@@ -104,9 +90,7 @@ describe('AuthService', () => {
         email: 'test@test.com',
         password: 'hashed-password',
       };
-      const mockError = new AuthenticationError(
-        'Email and/or password is wrong!'
-      );
+      const mockError = new AuthenticationError('Email and/or password is wrong!');
 
       (query as jest.Mock).mockResolvedValue({
         rows: [mockServerUser],
@@ -114,9 +98,7 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(AuthService.getUserByEmail(mockUser)).rejects.toThrow(
-        mockError
-      );
+      await expect(AuthService.getUserByEmail(mockUser)).rejects.toThrow(mockError);
     });
   });
 });

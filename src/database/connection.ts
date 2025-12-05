@@ -20,9 +20,7 @@ const poolConfig = {
 console.log(poolConfig, env_file);
 const pool = new Pool(poolConfig);
 
-pool.on('error', (error, client) =>
-  console.log('client: ', client, 'error: ', error)
-);
+pool.on('error', (error, client) => console.log('client: ', client, 'error: ', error));
 export const query = async <T extends pg.QueryResultRow>(
   text: string,
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */

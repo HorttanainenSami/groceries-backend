@@ -8,6 +8,7 @@ export class ApplicationError extends Error {
   constructor(message: string, statusCode: number = 500, name: string = 'ApplicationError') {
     super(message);
     this.statusCode = statusCode;
+    this.name = name;
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -19,7 +20,7 @@ export class AuthenticationError extends ApplicationError {
 }
 export class AuthorizationError extends ApplicationError {
   constructor(message: string) {
-    super(message, 401,'AuthorizationError');
+    super(message, 401, 'AuthorizationError');
   }
 }
 export class ResourceNotFoundError extends ApplicationError {

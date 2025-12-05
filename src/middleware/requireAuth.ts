@@ -1,20 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { decodeTokenFromRequest } from '../resources/utils';
-import {
-  AuthorizationError,
-  TokenExpiredError,
-} from '../middleware/Error.types';
+import { AuthorizationError, TokenExpiredError } from '../middleware/Error.types';
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   const token = req.headers['authorization'];
-  console.log('requireAuth');
 
   if (!token) {
     return next(new AuthorizationError('Access Token Required'));
   }
   try {
-    const decodedToken = decodeTokenFromRequest(req);
-    console.log('user id', decodedToken.id);
+    const _decodedToken = decodeTokenFromRequest(req);
   } catch (err) {
     if (err instanceof Error && err.name === 'JsonWebTokenError') {
       const date = new Date();
@@ -22,8 +17,6 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
     }
     return next(err);
   }
-  console.log('token is valid');
-  console.log('connecting to ', req.url);
   return next();
 }
 

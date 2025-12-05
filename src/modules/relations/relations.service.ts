@@ -1,10 +1,6 @@
 import { query } from '../../database/connection';
 import { DatabaseError as pgError } from 'pg';
-import {
-  ApplicationError,
-  AuthorizationError,
-  DatabaseError,
-} from '../../middleware/Error.types';
+import { ApplicationError, AuthorizationError, DatabaseError } from '../../middleware/Error.types';
 import {
   UserType,
   permissionSchema,
@@ -17,7 +13,7 @@ import {
   ServerRelationWithTasksAndPermissionsType,
 } from '@groceries/shared_types';
 
-type createTaskRelationResponseType = Omit<ServerRelationType, 'created_at'>&{ created_at: Date}
+type CreateTaskRelationResponseType = Omit<ServerRelationType, 'created_at'> & { created_at: Date };
 export const createTaskRelation = async (
   relation: BasicRelationWithTasksType,
   queryOrTxQuery?: typeof query
@@ -26,20 +22,19 @@ export const createTaskRelation = async (
     queryOrTxQuery = query;
   }
   try {
-    const create_relation_query = await queryOrTxQuery<
-     createTaskRelationResponseType
-    >(
+    const create_relation_query = await queryOrTxQuery<CreateTaskRelationResponseType>(
       `
       INSERT INTO Task_relation( name, created_at)
       values ($1,$2) RETURNING *;
     `,
       [relation.name, relation.created_at]
     );
-    if(create_relation_query.rowCount===0) throw Error('Could not create relation');
+    if (create_relation_query.rowCount === 0) throw Error('Could not create relation');
 
-    return create_relation_query
-    .rows
-    .map((item)  => ({...item, created_at: item.created_at.toISOString()}))[0];
+    return create_relation_query.rows.map((item) => ({
+      ...item,
+      created_at: item.created_at.toISOString(),
+    }))[0];
   } catch (error) {
     if (error instanceof ApplicationError) {
       console.error('Application error:', error);
@@ -61,9 +56,9 @@ export const getRelationWithTasks = async (
     txQuery = query;
   }
   try {
-    //relations info and permission 
-    const collaborators = await getCollaborators( user_id, task_relation_id, txQuery);
-    const user_permission = await getUserPermission(user_id, task_relation_id, txQuery);    
+    //relations info and permission
+    const collaborators = await getCollaborators(user_id, task_relation_id, txQuery);
+    const user_permission = await getUserPermission(user_id, task_relation_id, txQuery);
     const queryRelationById = await txQuery<getRelationByIdQueryResponseType>(
       `
         SELECT 
@@ -93,11 +88,11 @@ export const getRelationWithTasks = async (
         task_completed_by,
         task_relations_id,
       }) => ({
-        id:task_id,
+        id: task_id,
         task: task_task,
         created_at: task_created_at?.toISOString(),
-        completed_at: task_completed_at?.toISOString()||null,
-        completed_by: task_completed_by||null,
+        completed_at: task_completed_at?.toISOString() || null,
+        completed_by: task_completed_by || null,
         task_relations_id: task_relations_id,
       })
     );
@@ -109,9 +104,9 @@ export const getRelationWithTasks = async (
       name: queryRelationById.rows[0].relation_name,
       created_at: queryRelationById.rows[0].relation_created_at.toISOString(),
       relation_location: queryRelationById.rows[0].relation_location,
-      permission:user_permission.permission,
+      permission: user_permission.permission,
       shared_with: collaborators,
-      tasks: tasks.filter(t => t.id !== null)
+      tasks: tasks.filter((t) => t.id !== null),
     };
   } catch (error) {
     if (error instanceof pgError) {
@@ -122,17 +117,15 @@ export const getRelationWithTasks = async (
     throw error;
   }
 };
-export const removeRelation = async (
-  task_relation_id: Pick<BasicRelationWithTasksType, 'id'>
-) => {
+export const removeRelation = async (taskRelationId: Pick<BasicRelationWithTasksType, 'id'>) => {
   try {
     const q = await query<Pick<BasicRelationType, 'id'>>(
       `
         DELETE FROM Task_relation WHERE id = $1 RETURNING id;
       `,
-      [task_relation_id.id]
+      [taskRelationId.id]
     );
-    if(q.rowCount ===0) throw new Error('Relation not found')
+    if (q.rowCount === 0) throw new Error('Relation not found');
     return q.rows[0];
   } catch (error) {
     if (error instanceof pgError) {
@@ -143,11 +136,13 @@ export const removeRelation = async (
     throw error;
   }
 };
-type getAllRelationsResponseType = Omit<getRelationsResponseType, 'created_at'> & {created_at:Date}
+type GetAllRelationsResponseType = Omit<getRelationsResponseType, 'created_at'> & {
+  created_at: Date;
+};
 export const getAllRelations = async (user: Pick<UserType, 'id'>) => {
   try {
     console.log(user);
-    const q = await query<getAllRelationsResponseType>(
+    const q = await query<GetAllRelationsResponseType>(
       `
       SELECT 
         r.*, 
@@ -172,7 +167,7 @@ export const getAllRelations = async (user: Pick<UserType, 'id'>) => {
 
       [user.id]
     );
-    return q.rows.map(i => ({...i, created_at:i.created_at.toISOString()}));
+    return q.rows.map((i) => ({ ...i, created_at: i.created_at.toISOString() }));
   } catch (error) {
     if (error instanceof pgError) {
       console.error('Database error:', error);
@@ -184,32 +179,23 @@ export const getAllRelations = async (user: Pick<UserType, 'id'>) => {
 };
 
 export const getUserPermission = async (
-  user_id: Pick<UserType, 'id'>,
-  task_relation_id: Pick<BasicRelationWithTasksType, 'id'>,
+  userId: Pick<UserType, 'id'>,
+  taskRelationId: Pick<BasicRelationWithTasksType, 'id'>,
   txQuery?: typeof query
 ): Promise<PermissionType> => {
   try {
-    if(!txQuery) txQuery= query;
+    if (!txQuery) txQuery = query;
     const q = await txQuery<PermissionType>(
       `
         SELECT permission FROM task_permissions WHERE user_id = $1 AND task_relation_id = $2;
       `,
-      [user_id.id, task_relation_id.id]
+      [userId.id, taskRelationId.id]
     );
 
-    
     if (q.rows.length === 0)
-      throw new AuthorizationError(
-        'User does not have permission to edit this list'
-      );
-      console.log(
-        'hello from user permission',
-        user_id,
-        task_relation_id,
-        q.rows[0],
-        q.rows.length
-      );
-  
+      throw new AuthorizationError('User does not have permission to edit this list');
+    console.log('hello from user permission', userId, taskRelationId, q.rows[0], q.rows.length);
+
     const editPermission = permissionSchema.parse(q.rows[0]);
     return editPermission;
   } catch (error) {
@@ -225,8 +211,8 @@ export const getUserPermission = async (
 };
 
 export const grantRelationPermission = async (
-  user_id: Pick<UserType, 'id'>,
-  task_relation_id: Pick<BasicRelationWithTasksType, 'id'>,
+  userId: Pick<UserType, 'id'>,
+  taskRelationId: Pick<BasicRelationWithTasksType, 'id'>,
   permission: PermissionType,
   queryOrTxQuery?: typeof query
 ) => {
@@ -234,19 +220,14 @@ export const grantRelationPermission = async (
     queryOrTxQuery = query;
   }
   try {
-    console.log(
-      'adding relation collaborator',
-      user_id,
-      task_relation_id,
-      permission
-    );
+    console.log('adding relation collaborator', userId, taskRelationId, permission);
 
     const q = await queryOrTxQuery(
       `
         INSERT INTO task_permissions (user_id, task_relation_id, permission)
         values ($1, $2, $3) RETURNING *;
       `,
-      [user_id.id, task_relation_id.id, permission.permission]
+      [userId.id, taskRelationId.id, permission.permission]
     );
     if (q.rowCount === 0 || !q.rows[0]) {
       throw new Error('Failed to grant permission');
@@ -261,50 +242,46 @@ export const grantRelationPermission = async (
     throw error;
   }
 };
-type getCollaboratorsType = Omit<UserType, 'password'> & 
-  PermissionType
+type GetCollaboratorsType = Omit<UserType, 'password'> & PermissionType;
 
 export const getCollaborators = async (
-  {id}: Pick<UserType, 'id'>,
-  relations: Pick<ServerRelationType, 'id'>
-  ,txQuery?: typeof query
+  { id }: Pick<UserType, 'id'>,
+  relations: Pick<ServerRelationType, 'id'>,
+  txQuery?: typeof query
 ): Promise<Omit<UserType, 'password'>[]> => {
-  if(!txQuery) txQuery = query
-  try{
-    const q = await txQuery<getCollaboratorsType>(
+  if (!txQuery) txQuery = query;
+  try {
+    const q = await txQuery<GetCollaboratorsType>(
       `
         SELECT users.id as id, users.email as email, users.name as name, task_permissions.permission as permission  
         FROM task_permissions
         LEFT JOIN users ON users.id=task_permissions.user_id
         WHERE task_relation_id = $1 AND task_permissions.user_id != $2;
-      `,[relations.id, id]
-    )
+      `,
+      [relations.id, id]
+    );
     return q.rows;
-  } catch(e){
-    throw Error('Error'+ e);
+  } catch (e) {
+    throw Error('Error' + e);
   }
+};
 
-
-
-}
-
-type editRelationsNameResponseType = Omit<ServerRelationType, 'created_at'> & {created_at: Date}
+type EditRelationsNameResponseType = Omit<ServerRelationType, 'created_at'> & { created_at: Date };
 export const editRelationsName = async (
   id: string,
   newName: string,
-  user_id: string,
+  userId: string,
   txQuery: typeof query
 ): Promise<getRelationsResponseType> => {
   if (txQuery === undefined) {
     txQuery = query;
   }
   try {
-    
-    await txQuery<editRelationsNameResponseType>(
+    await txQuery<EditRelationsNameResponseType>(
       'UPDATE task_relation SET name = $1 WHERE id = $2 RETURNING *',
       [newName, id]
     );
-    const updated_response = await txQuery<getAllRelationsResponseType>(
+    const updated_response = await txQuery<GetAllRelationsResponseType>(
       `
       SELECT 
         r.*, 
@@ -327,13 +304,13 @@ export const editRelationsName = async (
 
       `,
 
-      [user_id, id]
+      [userId, id]
     );
-    if(updated_response.rowCount === 0){
+    if (updated_response.rowCount === 0) {
       throw new Error('Relation not found after update');
     }
-    
-    return updated_response.rows.map(i=>({...i, created_at:i.created_at.toISOString()}))[0];
+
+    return updated_response.rows.map((i) => ({ ...i, created_at: i.created_at.toISOString() }))[0];
   } catch (error) {
     if (error instanceof pgError) {
       console.error('Database error:', error);
@@ -342,4 +319,4 @@ export const editRelationsName = async (
     console.error('Error changing relation name:', error);
     throw error;
   }
-}
+};
