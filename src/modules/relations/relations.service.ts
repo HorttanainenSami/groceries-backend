@@ -4,18 +4,20 @@ import { ApplicationError, AuthorizationError, DatabaseError } from '../../middl
 import {
   UserType,
   permissionSchema,
-  BasicRelationWithTasksType,
+  RelationWithTasksType,
   PermissionType,
-  getRelationByIdQueryResponseType,
-  getRelationsResponseType,
-  BasicRelationType,
   ServerRelationType,
-  ServerRelationWithTasksAndPermissionsType,
+  ServerRelationWithTasksType,
 } from '@groceries/shared_types';
+import {
+  GetRelationByIdQueryResponseType,
+  GetAllServerRelationsQueryType,
+  GetAllServerRelationsTransform,
+} from './relations.types';
 
 type CreateTaskRelationResponseType = Omit<ServerRelationType, 'created_at'> & { created_at: Date };
 export const createTaskRelation = async (
-  relation: BasicRelationWithTasksType,
+  relation: RelationWithTasksType,
   queryOrTxQuery?: typeof query
 ): Promise<ServerRelationType> => {
   if (queryOrTxQuery === undefined) {
@@ -47,11 +49,12 @@ export const createTaskRelation = async (
     throw error;
   }
 };
+
 export const getRelationWithTasks = async (
-  task_relation_id: Pick<BasicRelationWithTasksType, 'id'>,
+  task_relation_id: Pick<RelationWithTasksType, 'id'>,
   user_id: Pick<UserType, 'id'>,
   txQuery?: typeof query
-): Promise<ServerRelationWithTasksAndPermissionsType> => {
+): Promise<ServerRelationWithTasksType> => {
   if (txQuery === undefined) {
     txQuery = query;
   }
@@ -59,7 +62,7 @@ export const getRelationWithTasks = async (
     //relations info and permission
     const collaborators = await getCollaborators(user_id, task_relation_id, txQuery);
     const user_permission = await getUserPermission(user_id, task_relation_id, txQuery);
-    const queryRelationById = await txQuery<getRelationByIdQueryResponseType>(
+    const queryRelationById = await txQuery<GetRelationByIdQueryResponseType>(
       `
         SELECT 
           tr.id as relation_id,
@@ -117,9 +120,9 @@ export const getRelationWithTasks = async (
     throw error;
   }
 };
-export const removeRelation = async (taskRelationId: Pick<BasicRelationWithTasksType, 'id'>) => {
+export const removeRelation = async (taskRelationId: Pick<RelationWithTasksType, 'id'>) => {
   try {
-    const q = await query<Pick<BasicRelationType, 'id'>>(
+    const q = await query<Pick<ServerRelationType, 'id'>>(
       `
         DELETE FROM Task_relation WHERE id = $1 RETURNING id;
       `,
@@ -136,13 +139,10 @@ export const removeRelation = async (taskRelationId: Pick<BasicRelationWithTasks
     throw error;
   }
 };
-type GetAllRelationsResponseType = Omit<getRelationsResponseType, 'created_at'> & {
-  created_at: Date;
-};
+
 export const getAllRelations = async (user: Pick<UserType, 'id'>) => {
   try {
-    console.log(user);
-    const q = await query<GetAllRelationsResponseType>(
+    const q = await query<GetAllServerRelationsQueryType>(
       `
       SELECT 
         r.*, 
@@ -167,7 +167,8 @@ export const getAllRelations = async (user: Pick<UserType, 'id'>) => {
 
       [user.id]
     );
-    return q.rows.map((i) => ({ ...i, created_at: i.created_at.toISOString() }));
+
+    return GetAllServerRelationsTransform.array().parse(q.rows);
   } catch (error) {
     if (error instanceof pgError) {
       console.error('Database error:', error);
@@ -180,7 +181,7 @@ export const getAllRelations = async (user: Pick<UserType, 'id'>) => {
 
 export const getUserPermission = async (
   userId: Pick<UserType, 'id'>,
-  taskRelationId: Pick<BasicRelationWithTasksType, 'id'>,
+  taskRelationId: Pick<RelationWithTasksType, 'id'>,
   txQuery?: typeof query
 ): Promise<PermissionType> => {
   try {
@@ -212,7 +213,7 @@ export const getUserPermission = async (
 
 export const grantRelationPermission = async (
   userId: Pick<UserType, 'id'>,
-  taskRelationId: Pick<BasicRelationWithTasksType, 'id'>,
+  taskRelationId: Pick<RelationWithTasksType, 'id'>,
   permission: PermissionType,
   queryOrTxQuery?: typeof query
 ) => {
@@ -272,7 +273,7 @@ export const editRelationsName = async (
   newName: string,
   userId: string,
   txQuery: typeof query
-): Promise<getRelationsResponseType> => {
+): Promise<ServerRelationType> => {
   if (txQuery === undefined) {
     txQuery = query;
   }
@@ -281,7 +282,7 @@ export const editRelationsName = async (
       'UPDATE task_relation SET name = $1 WHERE id = $2 RETURNING *',
       [newName, id]
     );
-    const updated_response = await txQuery<GetAllRelationsResponseType>(
+    const updated_response = await txQuery<GetAllServerRelationsQueryType>(
       `
       SELECT 
         r.*, 
@@ -310,7 +311,27 @@ export const editRelationsName = async (
       throw new Error('Relation not found after update');
     }
 
-    return updated_response.rows.map((i) => ({ ...i, created_at: i.created_at.toISOString() }))[0];
+    return updated_response.rows.map(
+      ({
+        shared_with_id,
+        shared_with_name,
+        shared_with_email,
+        created_at,
+        my_permission,
+        ...rest
+      }) => ({
+        ...rest,
+        permission: my_permission,
+        created_at: created_at.toISOString(),
+        shared_with: [
+          {
+            id: shared_with_id,
+            email: shared_with_email,
+            name: shared_with_name,
+          },
+        ],
+      })
+    )[0];
   } catch (error) {
     if (error instanceof pgError) {
       console.error('Database error:', error);

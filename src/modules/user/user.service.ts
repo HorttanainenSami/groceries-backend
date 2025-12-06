@@ -1,9 +1,9 @@
 import { query } from '../../database/connection';
 import { DatabaseError as pgError } from 'pg';
 import { DatabaseError } from '../../middleware/Error.types';
-import { UserType, searchQueryType } from '@groceries/shared_types';
+import { UserType, SearchQueryType } from '@groceries/shared_types';
 
-export const getUsersByParams = async (params: searchQueryType) => {
+export const getUsersByParams = async (params: SearchQueryType) => {
   try {
     console.log('inGetUsersByParams: ', params);
     const q = await query(`SELECT id, name FROM users WHERE name LIKE '%'|| $1 ||'%' ;`, [

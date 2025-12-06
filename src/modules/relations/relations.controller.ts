@@ -12,15 +12,12 @@ import {
 import {
   postRelationAndShareWithUserRequestSchema,
   deleteRelationParamsSchema,
-  BasicRelationWithTasksType,
+  RelationWithTasksType,
   editRelationNameBodySchema,
-  getRelationsResponseType,
-  BasicRelationType,
   UserType,
   ServerRelationType,
-  ServerRelationWithTasksType,
   LocalRelationWithTasksType,
-  ServerRelationWithTasksAndPermissionsType,
+  ServerRelationWithTasksType,
 } from '@groceries/shared_types';
 import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
@@ -28,7 +25,7 @@ import { createTaskForRelation } from '../tasks/tasks.service';
 
 export const postRelationAndShareWithUser = async (
   req: Request,
-  res: Response<ServerRelationWithTasksAndPermissionsType[]>,
+  res: Response<ServerRelationWithTasksType[]>,
   next: NextFunction
 ) => {
   try {
@@ -43,7 +40,7 @@ export const postRelationAndShareWithUser = async (
   }
 };
 export const create_and_share_relations = async (
-  relationsWithTasks: BasicRelationWithTasksType[],
+  relationsWithTasks: RelationWithTasksType[],
   userSharedWith: string,
   id: string
 ) => {
@@ -85,7 +82,7 @@ const createRelationAndGrantPermissions = async (
   userSharedWith: string,
   relation: LocalRelationWithTasksType,
   txQuery: typeof query
-): Promise<ServerRelationWithTasksAndPermissionsType> => {
+): Promise<ServerRelationWithTasksType> => {
   const newServerRelation = await createTaskRelation(relation, txQuery);
   const serverRelationWithInfo = await grantPermissionAndGetRelationWithTasks(
     id,
@@ -113,7 +110,7 @@ const grantPermissionAndGetRelationWithTasks = async (
   userSharedWith: string,
   relation: ServerRelationType,
   txQuery: typeof query
-): Promise<ServerRelationWithTasksAndPermissionsType> => {
+): Promise<ServerRelationWithTasksType> => {
   await grantRelationPermission({ id }, { id: relation.id }, { permission: 'owner' }, txQuery);
   await grantRelationPermission(
     { id: userSharedWith },
@@ -128,7 +125,7 @@ const grantPermissionAndGetRelationWithTasks = async (
 export const getRelationsById = async (
   userId: string,
   relationId: string
-): Promise<ServerRelationWithTasksAndPermissionsType> => {
+): Promise<ServerRelationWithTasksType> => {
   try {
     await getUserPermission({ id: userId }, { id: relationId });
     const relation = await getRelationWithTasks({ id: relationId }, { id: userId });
@@ -140,7 +137,7 @@ export const getRelationsById = async (
 };
 export const getRelations = async (
   req: Request,
-  res: Response<Omit<getRelationsResponseType, 'tasks'>[]>,
+  res: Response<ServerRelationType[]>,
   next: NextFunction
 ) => {
   try {
@@ -174,7 +171,7 @@ export const removeRelationFromServerHandler = async (
 };
 export const removeMultipleRelations = async (
   { id: userId }: Pick<UserType, 'id'>,
-  ids: Pick<BasicRelationType, 'id'>[]
+  ids: Pick<ServerRelationType, 'id'>[]
 ) => {
   const promises = ids.map(({ id }) => removeRelationFromServer(userId, id));
   const responses = await Promise.all(promises);
@@ -215,7 +212,7 @@ export const changeRelationName = async (
   relationId: string,
   newName: string,
   userId: string
-): Promise<getRelationsResponseType> => {
+): Promise<ServerRelationType> => {
   const client = await transactionClient();
   const txQuery = transactionQuery(client);
   try {
