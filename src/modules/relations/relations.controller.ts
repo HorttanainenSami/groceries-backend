@@ -69,12 +69,12 @@ export const create_and_share_relations = async (
     ]);
 
     await txQuery('COMMIT', []);
-    client.release();
     return [...response[0], ...response[1]];
   } catch (e) {
     await txQuery('ROLLBACK', []);
-    client.release();
     throw Error('something went wrong' + e);
+  } finally {
+    client.release();
   }
 };
 const createRelationAndGrantPermissions = async (
