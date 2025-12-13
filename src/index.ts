@@ -14,6 +14,7 @@ import {
 import { taskSocketHandlers } from './modules/tasks/tasks.socket';
 import { relationsSocketHandler } from './modules/relations/relations.socket';
 import { getCollaborators } from './modules/relations/relations.service';
+import { JsonWebTokenError } from './middleware/Error.types';
 
 const server = http.createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(
@@ -26,10 +27,13 @@ io.of('/user').use((socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) {
     console.log(wlog, 'Middleware: No token provided.');
-    return next(new Error('Invalid token: No token provided'));
+    return next(new JsonWebTokenError('Invalid token: No token provided'));
   }
   try {
-    jwt.verify(token, process.env.SECRET || '');
+    if (!process.env.SECRET) {
+      throw new Error('No SECRET property in .env file');
+    }
+    jwt.verify(token, process.env.SECRET);
     const decodedToken = decodeToken<TokenDecoded>(token);
     socket.data.id = decodedToken.id;
     socket.data.email = decodedToken.email;

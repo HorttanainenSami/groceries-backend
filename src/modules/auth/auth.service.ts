@@ -22,15 +22,12 @@ const createUser = async (user: NewUserType): Promise<UserType> => {
   }
 };
 const getUserByEmail = async (user: LoginRequestBodyType): Promise<UserType> => {
-  const loginError = () => {
-    throw new AuthenticationError('Email and/or password is wrong!');
-  };
   try {
-    const q = await query('Select * from  users WHERE email=$1;', [user.email]);
-    if (q.rowCount === 0) loginError();
+    const q = await query<UserType>('Select * from  users WHERE email=$1;', [user.email]);
+    if (q.rows.length === 0) throw new AuthenticationError('Email and/or password is wrong!');
     const password = q.rows[0].password;
     const match = await bcrypt.compare(user.password, password);
-    if (!match) loginError();
+    if (!match) throw new AuthenticationError('Email and/or password is wrong!');
     return userSchema.parse(q.rows[0]);
   } catch (error) {
     if (error instanceof pgError) {

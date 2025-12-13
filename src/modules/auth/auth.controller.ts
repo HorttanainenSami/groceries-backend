@@ -38,10 +38,11 @@ export const login = async (req: Request, res: Response<LoginResponseType>, next
     //same error message if email or pass is wrong for security
     if (user === null || !(await bcrypt.compare(initialUser.data.password, user.password))) {
       next(new AuthenticationError('Invalid credentials'));
+    } else {
+      const { email, id } = user;
+      const token = jwt.sign({ email, id }, secret(), { expiresIn: '7d' });
+      res.send({ token, email, id });
     }
-    const { email, id } = user;
-    const token = jwt.sign({ email, id }, secret(), { expiresIn: '7d' });
-    res.send({ token, email, id });
   } catch (err) {
     next(err);
   }

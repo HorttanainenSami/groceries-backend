@@ -17,7 +17,6 @@ const poolConfig = {
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 };
-console.log(poolConfig, env_file);
 const pool = new Pool(poolConfig);
 
 pool.on('error', (error, client) => console.log('client: ', client, 'error: ', error));
