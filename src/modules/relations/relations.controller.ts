@@ -116,7 +116,6 @@ const grantPermissionAndGetRelationWithTasks = async (
   relation: ServerRelationType,
   txQuery: typeof query
 ): Promise<ServerRelationWithTasksType> => {
-  // TODO validate user input
   await grantRelationPermission({ id }, { id: relation.id }, { permission: 'owner' }, txQuery);
   await grantRelationPermission(
     { id: userSharedWith },

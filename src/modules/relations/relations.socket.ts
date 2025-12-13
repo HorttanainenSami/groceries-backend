@@ -13,8 +13,8 @@ import {
   SocketType,
 } from '@groceries/shared_types';
 import { notifyCollaborators } from '../..';
+import { handleSocketError } from '../../middleware/ErrorHandler';
 
-// TODO make centralized error handler for sockets
 export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
   const user_id = socket.data.id;
 
@@ -25,8 +25,9 @@ export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
       const relations = await getAllRelations({ id: user_id });
       callback({ success: true, data: relations });
     } catch (e) {
-      console.error('Error getting relations:', e);
-      callback({ success: false, error: 'Failed to fetch relations ' });
+      const error = e instanceof Error ? e : new Error(String(e));
+      const response = handleSocketError(error);
+      callback(response);
     }
   });
   socket.on('relations:change_name', async (payload, callback) => {
@@ -36,8 +37,9 @@ export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
       callback({ success: true, data: response });
       await notifyCollaborators(id, user_id, 'relations:change_name', response);
     } catch (e) {
-      console.error('Error changing relation name:', e);
-      callback({ success: false, error: 'Failed to change relation name ' });
+      const error = e instanceof Error ? e : new Error(String(e));
+      const response = handleSocketError(error);
+      callback(response);
     }
   });
   socket.on('relations:delete', async (payload, callback) => {
@@ -57,8 +59,9 @@ export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
         await notifyCollaborators(parsed.id, user_id, 'relations:delete', [res]);
       }
     } catch (e) {
-      console.error('Error deleting relation:', e);
-      callback({ success: false, error: 'Failed to delete relation' });
+      const error = e instanceof Error ? e : new Error(String(e));
+      const response = handleSocketError(error);
+      callback(response);
     }
   });
 
@@ -74,8 +77,9 @@ export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
       callback({ success: true, data: response });
       io.of('/user').to(user_shared_with).emit('relations:share', response);
     } catch (e) {
-      console.error('Error sharing relation:', e);
-      callback({ success: false, error: 'Failed to share relation' });
+      const error = e instanceof Error ? e : new Error(String(e));
+      const response = handleSocketError(error);
+      callback(response);
     }
   });
 

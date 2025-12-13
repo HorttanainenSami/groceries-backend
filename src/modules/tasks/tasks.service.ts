@@ -1,6 +1,6 @@
 import { TaskType } from '@groceries/shared_types';
 import { query } from '../../database/connection';
-import { ApplicationError, DatabaseError } from '../../middleware/Error.types';
+import { ApplicationError, DatabaseError, NotFoundError } from '../../middleware/Error.types';
 import { DatabaseError as pgError } from 'pg';
 
 export const createTaskForRelation = async (
@@ -121,6 +121,9 @@ export const getTaskById = async ({
       task_id,
       relation_id,
     ]);
+    if (q.rows.length === 0) {
+      throw new NotFoundError('No such task found');
+    }
     return q.rows[0];
   } catch (error) {
     if (error instanceof pgError) {

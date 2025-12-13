@@ -1,4 +1,5 @@
-13.12.25 3h Virhe ilmoitusten kustomointi paremman virheilmoituksen saamiseksi
+13.12.25 2h sokettien virheilmoituksen käsittely eriytetyssä virheenkäisttely moduulissa
+13.12.25 3h Virheilmoitusten kustomointi paremman virheilmoituksen saamiseksi
 6.12.25 1h tyypitysten yhdenmukaistaminen
 5.12.25 1h Eslintin ja prettierin conffaus. Lintteri virheilmoitusten korjaus
 4.12.25 4h korjattu null tarkastukset , parannettu transaction, päivitetty sockettien tyypitystä. relatioon jakamis toiminto socketille.
@@ -20,4 +21,4 @@ autentikaation luominen 3h
 routerien luominen 3h
 Projektin luominen ja conffaus 2h
 
-66.5h
+71.5h

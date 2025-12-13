@@ -1,7 +1,7 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import { router as authRouter } from './modules/auth/auth.router';
-import errorHandler from './middleware/ErrorHandler';
+import { handleRestfulError } from './middleware/ErrorHandler';
 import requireAuth from './middleware/requireAuth';
 import { router as userRouter } from './modules/user/user.router';
 import { router as relationRouter } from './modules/relations/relations.router';
@@ -18,4 +18,4 @@ app.use('', authRouter);
 app.use(requireAuth);
 app.use('/user', userRouter);
 app.use('/relations', relationRouter);
-app.use(errorHandler);
+app.use(handleRestfulError);

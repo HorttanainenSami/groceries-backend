@@ -2,6 +2,7 @@ import { SocketType, ServerType, basicTaskSchema, editTaskSchema } from '@grocer
 import { getRelationsById } from '../relations/relations.controller';
 import { editTaskBy, postTaskToRelation, removeTaskFromRelation } from './tasks.controller';
 import { notifyCollaborators } from '../..';
+import { handleSocketError } from '../../middleware/ErrorHandler';
 
 export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
   const user_id = socket.data.id;
@@ -14,8 +15,9 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
       socket.join(relation.id);
       callback({ success: true, data: relation });
     } catch (error) {
-      console.error(error);
-      callback({ success: false, error: 'Failed to join relation' });
+      const e = error instanceof Error ? error : new Error(String(error));
+      const response = handleSocketError(e);
+      callback(response);
     }
   });
   socket.on('task:create', async ({ new_task }, callback) => {
@@ -26,8 +28,9 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
       callback({ success: true, data: stored_task });
       notifyCollaborators(new_task.task_relations_id, user_id, 'task:create', stored_task);
     } catch (error) {
-      console.error(error);
-      callback({ success: false, error: 'Failed to create task ' });
+      const e = error instanceof Error ? error : new Error(String(error));
+      const response = handleSocketError(e);
+      callback(response);
     }
   });
 
@@ -43,8 +46,9 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
       callback({ success: true, data: new_task });
       notifyCollaborators(new_task.task_relations_id, user_id, 'task:edit', new_task);
     } catch (error) {
-      console.error(error);
-      callback({ success: false, error: 'Failed to edit task' });
+      const e = error instanceof Error ? error : new Error(String(error));
+      const response = handleSocketError(e);
+      callback(response);
     }
   });
 
@@ -55,10 +59,18 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
         parsedTask.map((t) => removeTaskFromRelation(user_id, t.task_relations_id, t.id))
       );
       callback({ success: true, data: removed_tasks });
-      notifyCollaborators(parsedTask[0].task_relations_id, user_id, 'task:remove', removed_tasks);
+      if (removed_tasks.length !== 0) {
+        notifyCollaborators(
+          removed_tasks[0].task_relations_id,
+          user_id,
+          'task:remove',
+          removed_tasks
+        );
+      }
     } catch (error) {
-      console.error(error);
-      callback({ success: false, error: 'Failed to toggle task' });
+      const e = error instanceof Error ? error : new Error(String(error));
+      const response = handleSocketError(e);
+      callback(response);
     }
   });
 };
