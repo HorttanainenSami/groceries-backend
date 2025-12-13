@@ -54,11 +54,56 @@ const errorHandler = (error: Error, _request: Request, response: Response, _next
 
 const parseMessageFromErrorCode = (error: dbError): string | undefined => {
   switch (error.code) {
+    //unique violation
     case '23505':
-      return error.detail;
+      return parseUniqueViolation(error);
+
+    // foreign key violation
+    case '23503':
+      return parseForeignKeyViolation(error);
+
+    // not null violation
+    case '23502':
+      return parseNotNullViolation(error);
+    case '08000':
+    case '08003':
+    case '08006':
+      return 'Database temporarily unavailable';
     default:
       return 'Error in communicating with database';
   }
 };
+
+const parseUniqueViolation = (error: dbError) => {
+  const constraint = error.constraint || '';
+  if (constraint.includes('user')) {
+    return 'Usename already taken!';
+  }
+  if (constraint.includes('email')) {
+    return 'Email already taken!';
+  }
+  return 'This value already exists!';
+};
+
+const parseForeignKeyViolation = (error: dbError) => {
+  const constraint = error.constraint || '';
+
+  if (constraint.includes('user')) {
+    return 'User not found';
+  }
+  if (constraint.includes('task')) {
+    return 'Task not found';
+  }
+  if (constraint.includes('relation')) {
+    return 'List not found';
+  }
+
+  return 'Referenced item does not exist';
+};
+function parseNotNullViolation(error: dbError) {
+  const column = error.column || 'field';
+
+  return `${column} is required`;
+}
 
 export default errorHandler;

@@ -46,7 +46,7 @@ export const create_and_share_relations = async (
 ) => {
   const client = await transactionClient();
   const txQuery = transactionQuery(client);
-
+  // TODO validate user input
   try {
     await txQuery('BEGIN', []);
     //create relations
@@ -72,7 +72,7 @@ export const create_and_share_relations = async (
     return [...response[0], ...response[1]];
   } catch (e) {
     await txQuery('ROLLBACK', []);
-    throw Error('something went wrong' + e);
+    throw e;
   } finally {
     client.release();
   }
@@ -83,6 +83,7 @@ const createRelationAndGrantPermissions = async (
   relation: LocalRelationWithTasksType,
   txQuery: typeof query
 ): Promise<ServerRelationWithTasksType> => {
+  // TODO validate user input
   const newServerRelation = await createTaskRelation(relation, txQuery);
   const serverRelationWithInfo = await grantPermissionAndGetRelationWithTasks(
     id,
@@ -111,6 +112,7 @@ const grantPermissionAndGetRelationWithTasks = async (
   relation: ServerRelationType,
   txQuery: typeof query
 ): Promise<ServerRelationWithTasksType> => {
+  // TODO validate user input
   await grantRelationPermission({ id }, { id: relation.id }, { permission: 'owner' }, txQuery);
   await grantRelationPermission(
     { id: userSharedWith },
@@ -127,6 +129,7 @@ export const getRelationsById = async (
   relationId: string
 ): Promise<ServerRelationWithTasksType> => {
   try {
+    // TODO validate user input
     await getUserPermission({ id: userId }, { id: relationId });
     const relation = await getRelationWithTasks({ id: relationId }, { id: userId });
     return relation;
@@ -140,6 +143,7 @@ export const getRelations = async (
   res: Response<ServerRelationType[]>,
   next: NextFunction
 ) => {
+  // TODO validate user input
   try {
     const { id } = decodeTokenFromRequest(req);
     const relation = await getAllRelations({ id });
@@ -155,6 +159,7 @@ export const removeRelationFromServerHandler = async (
   next: NextFunction
 ) => {
   try {
+    // TODO validate user input
     const { id } = decodeTokenFromRequest(req);
     console.log(req.params);
     const relationId = deleteRelationParamsSchema.parse(req.params);
@@ -173,6 +178,7 @@ export const removeMultipleRelations = async (
   { id: userId }: Pick<UserType, 'id'>,
   ids: Pick<ServerRelationType, 'id'>[]
 ) => {
+  // TODO validate user input
   const promises = ids.map(({ id }) => removeRelationFromServer(userId, id));
   const responses = await Promise.all(promises);
   return responses;
@@ -182,6 +188,7 @@ export const removeRelationFromServer = async (
   relationId: string
 ): Promise<[boolean, string]> => {
   try {
+    // TODO validate user input
     await getUserPermission({ id: userId }, { id: relationId });
     //remove relation
     const response = await removeRelation({ id: relationId });
@@ -198,6 +205,7 @@ export const changeRelationNameHandler = async (
   next: NextFunction
 ) => {
   try {
+    // TODO validate user input
     const { id } = decodeTokenFromRequest(req);
     const { relation_id, new_name } = editRelationNameBodySchema.parse(req.body);
     await getUserPermission({ id }, { id: relation_id });
@@ -216,6 +224,7 @@ export const changeRelationName = async (
   const client = await transactionClient();
   const txQuery = transactionQuery(client);
   try {
+    // TODO validate user input
     await txQuery('BEGIN', []);
     const updatedRelation = await editRelationsName(relationId, newName, userId, txQuery);
     await txQuery('COMMIT', []);

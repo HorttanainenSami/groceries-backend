@@ -7,7 +7,6 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
   const user_id = socket.data.id;
   socket.on('task:join', async ({ relation_id }, callback) => {
     try {
-      console.log('clients', io.engine.clientsCount);
       const relation = await getRelationsById(user_id, relation_id);
       socket.join(relation.id);
       callback({ success: true, data: relation });
@@ -18,7 +17,6 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
   });
   socket.on('task:create', async ({ new_task }, callback) => {
     try {
-      console.log(new_task.created_at);
       const parsed_task = basicTaskSchema.omit({ id: true }).parse(new_task);
       const stored_task = await postTaskToRelation(user_id, parsed_task);
 
@@ -57,7 +55,7 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
       notifyCollaborators(parsedTask[0].task_relations_id, user_id, 'task:remove', removed_tasks);
     } catch (error) {
       console.error(error);
-      socket.emit('error', { message: 'Failed to toggle task' });
+      callback({ success: false, error: 'Failed to toggle task' });
     }
   });
 };

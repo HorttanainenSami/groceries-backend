@@ -1,6 +1,11 @@
 import { query } from '../../database/connection';
 import { DatabaseError as pgError } from 'pg';
-import { ApplicationError, AuthorizationError, DatabaseError } from '../../middleware/Error.types';
+import {
+  ApplicationError,
+  AuthorizationError,
+  DatabaseError,
+  NotFoundError,
+} from '../../middleware/Error.types';
 import {
   UserType,
   permissionSchema,
@@ -24,19 +29,18 @@ export const createTaskRelation = async (
     queryOrTxQuery = query;
   }
   try {
-    const create_relation_query = await queryOrTxQuery<CreateTaskRelationResponseType>(
+    const createRelationQuery = await queryOrTxQuery<CreateTaskRelationResponseType>(
       `
       INSERT INTO Task_relation( name, created_at)
       values ($1,$2) RETURNING *;
     `,
       [relation.name, relation.created_at]
     );
-    if (create_relation_query.rowCount === 0) throw Error('Could not create relation');
-
-    return create_relation_query.rows.map((item) => ({
-      ...item,
-      created_at: item.created_at.toISOString(),
-    }))[0];
+    const newRelation = createRelationQuery.rows[0];
+    return {
+      ...newRelation,
+      created_at: newRelation.created_at.toISOString(),
+    };
   } catch (error) {
     if (error instanceof ApplicationError) {
       console.error('Application error:', error);
@@ -82,6 +86,9 @@ export const getRelationWithTasks = async (
       `,
       [task_relation_id.id]
     );
+    if (queryRelationById.rows.length === 0) {
+      throw new NotFoundError('Relation not found');
+    }
     const tasks = queryRelationById.rows.map(
       ({
         task_id,
@@ -99,9 +106,7 @@ export const getRelationWithTasks = async (
         task_relations_id: task_relations_id,
       })
     );
-    if (queryRelationById.rows.length === 0) {
-      throw new Error('Relation not found');
-    }
+
     return {
       id: queryRelationById.rows[0].relation_id,
       name: queryRelationById.rows[0].relation_name,
@@ -128,12 +133,16 @@ export const removeRelation = async (taskRelationId: Pick<RelationWithTasksType,
       `,
       [taskRelationId.id]
     );
-    if (q.rowCount === 0) throw new Error('Relation not found');
+    if (q.rowCount === 0) throw new NotFoundError('Relation not found');
     return q.rows[0];
   } catch (error) {
     if (error instanceof pgError) {
       console.error('Database error:', error);
       throw new DatabaseError('Failed to delete relation', error);
+    }
+    if (error instanceof NotFoundError) {
+      // it can be already removed by other user so return as if it was deleted
+      return { id: taskRelationId.id };
     }
     console.error('Error deleting relation:', error);
     throw error;
@@ -202,7 +211,7 @@ export const getUserPermission = async (
   } catch (error) {
     if (error instanceof AuthorizationError) {
       console.error('User does not have permission:', error);
-      throw error; // Rethrow the error to be handled by the caller
+      throw error;
     } else if (error instanceof pgError) {
       console.error('Error fetching user permission:', error);
       throw new DatabaseError('Failed to fetch user permission', error);
@@ -230,9 +239,7 @@ export const grantRelationPermission = async (
       `,
       [userId.id, taskRelationId.id, permission.permission]
     );
-    if (q.rowCount === 0 || !q.rows[0]) {
-      throw new Error('Failed to grant permission');
-    }
+
     return q.rows[0];
   } catch (error) {
     if (error instanceof pgError) {
@@ -263,7 +270,10 @@ export const getCollaborators = async (
     );
     return q.rows;
   } catch (e) {
-    throw Error('Error' + e);
+    if (e instanceof pgError) {
+      throw new DatabaseError('Error in fetching collaborators', e);
+    }
+    throw e;
   }
 };
 
@@ -308,7 +318,7 @@ export const editRelationsName = async (
       [userId, id]
     );
     if (updated_response.rowCount === 0) {
-      throw new Error('Relation not found after update');
+      throw new NotFoundError('Relation not found after update');
     }
 
     return updated_response.rows.map(

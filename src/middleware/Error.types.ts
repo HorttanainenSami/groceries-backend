@@ -59,3 +59,13 @@ export class CastError extends ApplicationError {
     super(message, 400, 'CastError');
   }
 }
+export class InvalidData extends ApplicationError {
+  constructor(message: string) {
+    super(message, 400, 'InvalidDataError');
+  }
+}
+export class NotFoundError extends ApplicationError {
+  constructor(message: string) {
+    super(message, 404, 'NotFoundError');
+  }
+}

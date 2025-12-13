@@ -32,14 +32,21 @@ export const createSingleTaskForRelation = async (
   if (queryOrTxQuery === undefined) {
     queryOrTxQuery = query;
   }
-  const q = await queryOrTxQuery<TaskType>(
-    `
+  try {
+    const q = await queryOrTxQuery<TaskType>(
+      `
       INSERT INTO Task (task, created_at, completed_at, completed_by, task_relations_id)
       values ($1,$2,$3,$4,$5) RETURNING *;
-    `,
-    [task.task, task.created_at, task.completed_at, task.completed_by, task.task_relations_id]
-  );
-  return q.rows[0];
+      `,
+      [task.task, task.created_at, task.completed_at, task.completed_by, task.task_relations_id]
+    );
+    return q.rows[0];
+  } catch (error) {
+    if (error instanceof pgError) {
+      throw new DatabaseError('Error creating task for relation', error);
+    }
+    throw error;
+  }
 };
 export const createMultipleTaskForRelation = async (
   task: Omit<TaskType, 'id'>[],
@@ -91,9 +98,7 @@ export const editTask = async ({ id, task, completed_at, completed_by }: TaskTyp
     const update_query = `
       UPDATE TASK SET task=$2, completed_by=$3, completed_at=$4 WHERE id = $1 RETURNING *;
       `;
-    console.log(update_query, [id, task, completed_by, completed_at]);
     const q = await query<TaskType>(update_query, [id, task, completed_by, completed_at]);
-    console.log('query', q.rows[0]);
     return q.rows[0];
   } catch (error) {
     if (error instanceof pgError) {
@@ -111,9 +116,16 @@ export const getTaskById = async ({
   task_id: string;
   relation_id: string;
 }) => {
-  const q = await query<TaskType>('SELECT * from Task WHERE id=$1 AND task_relations_id=$2', [
-    task_id,
-    relation_id,
-  ]);
-  return q.rows[0];
+  try {
+    const q = await query<TaskType>('SELECT * from Task WHERE id=$1 AND task_relations_id=$2', [
+      task_id,
+      relation_id,
+    ]);
+    return q.rows[0];
+  } catch (error) {
+    if (error instanceof pgError) {
+      throw new DatabaseError('Failet to get task by id', error);
+    }
+    throw error;
+  }
 };

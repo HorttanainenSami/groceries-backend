@@ -1,6 +1,6 @@
 import { query } from '../../database/connection';
 import { DatabaseError as pgError } from 'pg';
-import { DatabaseError } from '../../middleware/Error.types';
+import { DatabaseError, NotFoundError } from '../../middleware/Error.types';
 import { UserType, SearchQueryType } from '@groceries/shared_types';
 
 export const getUsersByParams = async (params: SearchQueryType) => {
@@ -29,7 +29,7 @@ export const getUserById = async (id: string, txQuery?: typeof query) => {
       [id]
     );
     if (q.rows.length === 0) {
-      throw new Error('User not found');
+      throw new NotFoundError('User not found');
     }
     return q.rows[0];
   } catch (error) {
