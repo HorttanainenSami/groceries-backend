@@ -14,6 +14,7 @@ import {
 } from '@groceries/shared_types';
 import { notifyCollaborators } from '../..';
 
+// TODO make centralized error handler for sockets
 export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
   const user_id = socket.data.id;
 
@@ -21,12 +22,11 @@ export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
 
   socket.on('relations:get_relations', async (callback) => {
     try {
-      console.log('get Relations ', user_id);
       const relations = await getAllRelations({ id: user_id });
       callback({ success: true, data: relations });
     } catch (e) {
       console.error('Error getting relations:', e);
-      callback({ success: false, error: 'Error: ' + e });
+      callback({ success: false, error: 'Failed to fetch relations ' });
     }
   });
   socket.on('relations:change_name', async (payload, callback) => {
@@ -37,7 +37,7 @@ export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
       await notifyCollaborators(id, user_id, 'relations:change_name', response);
     } catch (e) {
       console.error('Error changing relation name:', e);
-      callback({ success: false, error: 'Failed to change relation name: ' + e });
+      callback({ success: false, error: 'Failed to change relation name ' });
     }
   });
   socket.on('relations:delete', async (payload, callback) => {
@@ -66,7 +66,11 @@ export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
     try {
       const { task_relations, user_shared_with } =
         postRelationAndShareWithUserRequestSchema.parse(payload);
-      const response = await create_and_share_relations(task_relations, user_shared_with, user_id);
+      const response = await create_and_share_relations({
+        relationsWithTasks: task_relations,
+        userSharedWith: user_shared_with,
+        id: user_id,
+      });
       callback({ success: true, data: response });
       io.of('/user').to(user_shared_with).emit('relations:share', response);
     } catch (e) {
