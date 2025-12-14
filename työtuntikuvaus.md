@@ -1,3 +1,4 @@
+14.12.25 3h tietokannan migraatio työkalun käyttöönotto, konffaus ja typescript moduuli onglemat
 13.12.25 2h sokettien virheilmoituksen käsittely eriytetyssä virheenkäisttely moduulissa
 13.12.25 3h Virheilmoitusten kustomointi paremman virheilmoituksen saamiseksi
 6.12.25 1h tyypitysten yhdenmukaistaminen
@@ -21,4 +22,4 @@ autentikaation luominen 3h
 routerien luominen 3h
 Projektin luominen ja conffaus 2h
 
-71.5h
+74.5h

@@ -11,7 +11,14 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\""
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "migrate": "node-pg-migrate -f .node-pg-migraterc.json",
+    "migrate:up": "node-pg-migrate up -f .node-pg-migraterc.json",
+    "migrate:down": "node-pg-migrate down -f .node-pg-migraterc.json",
+    "migrate:create": "node-pg-migrate create -f .node-pg-migraterc.json",
+    "migrate:dev": "export $(cat .env.dev | xargs) && node-pg-migrate up -f .node-pg-migraterc.json",
+    "migrate:test": "export $(cat .env.test | xargs) && node-pg-migrate up -f .node-pg-migraterc.json",
+    "migrate:prod": "export $(cat .env.prod | xargs) && node-pg-migrate up -f .node-pg-migraterc.json"
   },
   "keywords": [],
   "author": "",
@@ -20,7 +27,7 @@
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.6.1",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",

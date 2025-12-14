@@ -2,3 +2,4 @@ node_modules/
 .env
 .env.*
 todo.md
+.node-pg-migraterc.json
