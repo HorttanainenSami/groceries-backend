@@ -78,7 +78,8 @@ export const getRelationWithTasks = async (
           task.created_at as task_created_at,
           task.completed_at as task_completed_at, 
           task.completed_by as task_completed_by,
-          task.task_relations_id as task_relations_id
+          task.task_relations_id as task_relations_id,
+          task.order_idx as task_order_idx
            FROM task_relation
             AS tr LEFT JOIN task
             ON tr.id=task.task_relations_id
@@ -97,6 +98,7 @@ export const getRelationWithTasks = async (
         task_completed_at,
         task_completed_by,
         task_relations_id,
+        task_order_idx,
       }) => ({
         id: task_id,
         task: task_task,
@@ -104,6 +106,7 @@ export const getRelationWithTasks = async (
         completed_at: task_completed_at?.toISOString() || null,
         completed_by: task_completed_by || null,
         task_relations_id: task_relations_id,
+        order_idx: task_order_idx,
       })
     );
 

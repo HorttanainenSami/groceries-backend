@@ -65,7 +65,7 @@ export const create_and_share_relations = async (props: createAndShareRelationsT
       createRelationAndGrantPermissions(id, userSharedWith, relation, txQuery)
     );
     const grant_permission_promise = server_relations.map((r) =>
-      grantPermissionAndGetRelationWithTasks(id, userSharedWith, r, txQuery)
+      grantEditPermissionAndGetRelationWithTasks(id, userSharedWith, r, txQuery)
     );
 
     const response = await Promise.all([
@@ -88,14 +88,14 @@ const createRelationAndGrantPermissions = async (
   relation: LocalRelationWithTasksType,
   txQuery: typeof query
 ): Promise<ServerRelationWithTasksType> => {
-  const newServerRelation = await createTaskRelation(relation, txQuery);
-  const serverRelationWithInfo = await grantPermissionAndGetRelationWithTasks(
+  const newServerRelation = await createRelationWithOwnerPremission(id, relation, txQuery);
+  const sharedRelation = await grantEditPermissionAndGetRelationWithTasks(
     id,
     userSharedWith,
     newServerRelation,
     txQuery
   );
-  if (relation.tasks.length === 0) return serverRelationWithInfo;
+  if (relation.tasks.length === 0) return sharedRelation;
   const initTasks = relation.tasks.map((task) => ({
     ...task,
     task_relations_id: newServerRelation.id,
@@ -106,17 +106,25 @@ const createRelationAndGrantPermissions = async (
       ? serverStoredTasks
       : [serverStoredTasks]
     : [];
-  const response = { ...serverRelationWithInfo, tasks: returnTasks };
+  return { ...sharedRelation, tasks: returnTasks };
+};
+const createRelationWithOwnerPremission = async (
+  id: string,
+  relation: LocalRelationWithTasksType,
+  txQuery: typeof query
+) => {
+  const { id: relation_id } = await createTaskRelation(relation, txQuery);
+  await grantRelationPermission({ id }, { id: relation_id }, { permission: 'owner' }, txQuery);
+  const response = await getRelationWithTasks({ id: relation_id }, { id }, txQuery);
   return response;
 };
 
-const grantPermissionAndGetRelationWithTasks = async (
+const grantEditPermissionAndGetRelationWithTasks = async (
   id: string,
   userSharedWith: string,
   relation: ServerRelationType,
   txQuery: typeof query
 ): Promise<ServerRelationWithTasksType> => {
-  await grantRelationPermission({ id }, { id: relation.id }, { permission: 'owner' }, txQuery);
   await grantRelationPermission(
     { id: userSharedWith },
     { id: relation.id },

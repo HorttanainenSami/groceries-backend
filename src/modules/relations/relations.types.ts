@@ -12,6 +12,7 @@ export const getRelationByIdQueryResponseSchema = z.object({
   task_completed_by: z.string().uuid().nullable(),
   task_completed_at: z.date().nullable(),
   task_relations_id: z.string().uuid(),
+  task_order_idx: z.number(),
 });
 export type GetRelationByIdQueryResponseType = z.infer<typeof getRelationByIdQueryResponseSchema>;
 

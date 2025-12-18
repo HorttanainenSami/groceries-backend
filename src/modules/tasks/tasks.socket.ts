@@ -73,4 +73,28 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
       callback(response);
     }
   });
+
+  socket.on('task:reorder', async ({ reodred_tasks }, callback) => {
+    try {
+      const parsedTask = basicTaskSchema.array().parse(reodred_tasks);
+      const updatedTasks = await Promise.all(
+        parsedTask.map((t) =>
+          editTaskBy(user_id, t.task_relations_id, t.id, { order_idx: t.order_idx })
+        )
+      );
+      if (updatedTasks.length !== 0) {
+        notifyCollaborators(
+          updatedTasks[0].task_relations_id,
+          user_id,
+          'task:reorder',
+          updatedTasks
+        );
+      }
+      callback({ success: true, data: updatedTasks });
+    } catch (error) {
+      const e = error instanceof Error ? error : new Error(String(error));
+      const response = handleSocketError(e);
+      callback(response);
+    }
+  });
 };

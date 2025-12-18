@@ -6,9 +6,10 @@ import { UserType, SearchQueryType } from '@groceries/shared_types';
 export const getUsersByParams = async (params: SearchQueryType) => {
   try {
     console.log('inGetUsersByParams: ', params);
-    const q = await query(`SELECT id, name FROM users WHERE name LIKE '%'|| $1 ||'%' ;`, [
-      params.name,
-    ]);
+    const q = await query<Pick<UserType, 'id' | 'name'>>(
+      `SELECT id, name FROM users WHERE name LIKE '%'|| $1 ||'%' ;`,
+      [params.name]
+    );
     return q.rows;
   } catch (error) {
     if (error instanceof pgError) {

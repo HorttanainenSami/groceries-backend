@@ -7,7 +7,7 @@ export const editTaskBy = async (
   id: string,
   relation_id: string,
   task_id: string,
-  task_without_id: Partial<Pick<TaskType, 'completed_by' | 'completed_at' | 'task'>>
+  task_without_id: Partial<Pick<TaskType, 'completed_by' | 'completed_at' | 'task' | 'order_idx'>>
 ) => {
   await getUserPermission({ id }, { id: relation_id });
   const serverTask = await getTaskById({ task_id, relation_id });

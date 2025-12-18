@@ -35,10 +35,17 @@ export const createSingleTaskForRelation = async (
   try {
     const q = await queryOrTxQuery<TaskType>(
       `
-      INSERT INTO Task (task, created_at, completed_at, completed_by, task_relations_id)
-      values ($1,$2,$3,$4,$5) RETURNING *;
+      INSERT INTO Task (task, created_at, completed_at, completed_by, task_relations_id, order_idx)
+      values ($1,$2,$3,$4,$5,$6) RETURNING *;
       `,
-      [task.task, task.created_at, task.completed_at, task.completed_by, task.task_relations_id]
+      [
+        task.task,
+        task.created_at,
+        task.completed_at,
+        task.completed_by,
+        task.task_relations_id,
+        task.order_idx,
+      ]
     );
     return q.rows[0];
   } catch (error) {
@@ -58,19 +65,20 @@ export const createMultipleTaskForRelation = async (
   const dynamicValues = task
     .map(
       (_, idx) =>
-        `($${idx * 5 + 1}, $${idx * 5 + 2}, $${idx * 5 + 3}, $${idx * 5 + 4}, $${idx * 5 + 5})`
+        `($${idx * 6 + 1}, $${idx * 6 + 2}, $${idx * 6 + 3}, $${idx * 6 + 4}, $${idx * 6 + 5}, $${idx * 6 + 6})`
     )
     .join(', ');
   const dynamicParameters = task.flatMap(
-    ({ task, created_at, completed_at, completed_by, task_relations_id }) => [
+    ({ task, created_at, completed_at, completed_by, task_relations_id, order_idx }) => [
       task,
       created_at,
       completed_at,
       completed_by,
       task_relations_id,
+      order_idx,
     ]
   );
-  const queryString = `INSERT INTO Task (task, created_at, completed_at, completed_by, task_relations_id)
+  const queryString = `INSERT INTO Task (task, created_at, completed_at, completed_by, task_relations_id, order_idx)
     values ${dynamicValues} RETURNING *;`;
   return (await queryOrTxQuery<TaskType>(queryString, dynamicParameters)).rows;
 };
@@ -93,12 +101,18 @@ export const removeTask = async (task_id: Pick<TaskType, 'id'>) => {
   }
 };
 
-export const editTask = async ({ id, task, completed_at, completed_by }: TaskType) => {
+export const editTask = async ({ id, task, completed_at, completed_by, order_idx }: TaskType) => {
   try {
     const update_query = `
-      UPDATE TASK SET task=$2, completed_by=$3, completed_at=$4 WHERE id = $1 RETURNING *;
+      UPDATE TASK SET task=$2, completed_by=$3, completed_at=$4, order_idx=$5 WHERE id = $1 RETURNING *;
       `;
-    const q = await query<TaskType>(update_query, [id, task, completed_by, completed_at]);
+    const q = await query<TaskType>(update_query, [
+      id,
+      task,
+      completed_by,
+      completed_at,
+      order_idx,
+    ]);
     return q.rows[0];
   } catch (error) {
     if (error instanceof pgError) {

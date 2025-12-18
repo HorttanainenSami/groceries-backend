@@ -1,3 +1,4 @@
+18.12.25 1h task listan tuotteen uudelleen järjestyksen pysyväistallennus
 14.12.25 3h tietokannan migraatio työkalun käyttöönotto, konffaus ja typescript moduuli onglemat
 13.12.25 2h sokettien virheilmoituksen käsittely eriytetyssä virheenkäisttely moduulissa
 13.12.25 3h Virheilmoitusten kustomointi paremman virheilmoituksen saamiseksi
@@ -22,4 +23,4 @@ autentikaation luominen 3h
 routerien luominen 3h
 Projektin luominen ja conffaus 2h
 
-74.5h
+75.5h
