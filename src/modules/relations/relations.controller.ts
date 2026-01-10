@@ -229,7 +229,7 @@ export const changeRelationName = async (
   const txQuery = transactionQuery(client);
   try {
     await txQuery('BEGIN', []);
-    const updatedRelation = await editRelationsName(relationId, newName, userId, txQuery);
+    const updatedRelation = await editRelationsName({ relationId, newName, userId, txQuery });
     await txQuery('COMMIT', []);
     return updatedRelation;
   } catch (e) {

@@ -5,6 +5,7 @@ import { handleRestfulError } from './middleware/ErrorHandler';
 import requireAuth from './middleware/requireAuth';
 import { router as userRouter } from './modules/user/user.router';
 import { router as relationRouter } from './modules/relations/relations.router';
+import { router as syncRouter } from './modules/sync/sync.router';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -17,5 +18,6 @@ app.use(express.json());
 app.use('', authRouter);
 app.use(requireAuth);
 app.use('/user', userRouter);
+app.use('/sync', syncRouter);
 app.use('/relations', relationRouter);
 app.use(handleRestfulError);

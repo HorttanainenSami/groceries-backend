@@ -67,6 +67,7 @@ export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
 
   socket.on('relations:share', async (payload, callback) => {
     try {
+      console.log(JSON.stringify(payload, null, 2));
       const { task_relations, user_shared_with } =
         postRelationAndShareWithUserRequestSchema.parse(payload);
       const response = await create_and_share_relations({
@@ -77,6 +78,7 @@ export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
       callback({ success: true, data: response });
       io.of('/user').to(user_shared_with).emit('relations:share', response);
     } catch (e) {
+      console.log(e);
       const error = e instanceof Error ? e : new Error(String(e));
       const response = handleSocketError(error);
       callback(response);

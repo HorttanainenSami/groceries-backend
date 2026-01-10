@@ -22,7 +22,7 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
   });
   socket.on('task:create', async ({ new_task }, callback) => {
     try {
-      const parsed_task = basicTaskSchema.omit({ id: true }).parse(new_task);
+      const parsed_task = basicTaskSchema.parse(new_task);
       const stored_task = await postTaskToRelation(user_id, parsed_task);
 
       callback({ success: true, data: stored_task });

@@ -22,10 +22,7 @@ export const removeTaskFromRelation = async (id: string, relation_id: string, ta
   return relation;
 };
 
-export const postTaskToRelation = async (
-  id: string,
-  task: Omit<TaskType, 'id'>
-): Promise<TaskType> => {
+export const postTaskToRelation = async (id: string, task: TaskType): Promise<TaskType> => {
   //check if user had permission to edit
   const permission = await getUserPermission({ id }, { id: task.task_relations_id });
   if (!permission)

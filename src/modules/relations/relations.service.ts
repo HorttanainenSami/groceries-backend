@@ -31,10 +31,10 @@ export const createTaskRelation = async (
   try {
     const createRelationQuery = await queryOrTxQuery<CreateTaskRelationResponseType>(
       `
-      INSERT INTO Task_relation( name, created_at)
-      values ($1,$2) RETURNING *;
+      INSERT INTO Task_relation(id, name, created_at, last_modified)
+      values ($1,$2,$3,$4) RETURNING *;
     `,
-      [relation.name, relation.created_at]
+      [relation.id, relation.name, relation.created_at, relation.created_at]
     );
     const newRelation = createRelationQuery.rows[0];
     return {
@@ -68,18 +68,20 @@ export const getRelationWithTasks = async (
     const user_permission = await getUserPermission(user_id, task_relation_id, txQuery);
     const queryRelationById = await txQuery<GetRelationByIdQueryResponseType>(
       `
-        SELECT 
+        SELECT
           tr.id as relation_id,
           tr.name as relation_name,
           tr.created_at as relation_created_at,
+          tr.last_modified as relation_last_modified,
           tr.relation_location as relation_location,
-          task.id as task_id, 
+          task.id as task_id,
           task.task as task_task,
           task.created_at as task_created_at,
-          task.completed_at as task_completed_at, 
+          task.completed_at as task_completed_at,
           task.completed_by as task_completed_by,
           task.task_relations_id as task_relations_id,
-          task.order_idx as task_order_idx
+          task.order_idx as task_order_idx,
+          task.last_modified as task_last_modified
            FROM task_relation
             AS tr LEFT JOIN task
             ON tr.id=task.task_relations_id
@@ -99,6 +101,7 @@ export const getRelationWithTasks = async (
         task_completed_by,
         task_relations_id,
         task_order_idx,
+        task_last_modified,
       }) => ({
         id: task_id,
         task: task_task,
@@ -107,6 +110,7 @@ export const getRelationWithTasks = async (
         completed_by: task_completed_by || null,
         task_relations_id: task_relations_id,
         order_idx: task_order_idx,
+        last_modified: task_last_modified?.toISOString(),
       })
     );
 
@@ -117,6 +121,7 @@ export const getRelationWithTasks = async (
       relation_location: queryRelationById.rows[0].relation_location,
       permission: user_permission.permission,
       shared_with: collaborators,
+      last_modified: queryRelationById.rows[0].relation_last_modified.toISOString(),
       tasks: tasks.filter((t) => t.id !== null),
     };
   } catch (error) {
@@ -281,19 +286,27 @@ export const getCollaborators = async (
 };
 
 type EditRelationsNameResponseType = Omit<ServerRelationType, 'created_at'> & { created_at: Date };
-export const editRelationsName = async (
-  id: string,
-  newName: string,
-  userId: string,
-  txQuery: typeof query
-): Promise<ServerRelationType> => {
+type EditRelationNameProps = {
+  relationId: string;
+  newName: string;
+  userId: string;
+  txQuery?: typeof query;
+  last_modified?: string;
+};
+export const editRelationsName = async ({
+  relationId,
+  newName,
+  userId,
+  txQuery,
+  last_modified,
+}: EditRelationNameProps): Promise<ServerRelationType> => {
   if (txQuery === undefined) {
     txQuery = query;
   }
   try {
     await txQuery<EditRelationsNameResponseType>(
-      'UPDATE task_relation SET name = $1 WHERE id = $2 RETURNING *',
-      [newName, id]
+      'UPDATE task_relation SET name = $1, last_modified = $2 WHERE id = $3 RETURNING *',
+      [newName, last_modified ?? new Date(), relationId]
     );
     const updated_response = await txQuery<GetAllServerRelationsQueryType>(
       `
@@ -318,7 +331,7 @@ export const editRelationsName = async (
 
       `,
 
-      [userId, id]
+      [userId, relationId]
     );
     if (updated_response.rowCount === 0) {
       throw new NotFoundError('Relation not found after update');
@@ -331,11 +344,13 @@ export const editRelationsName = async (
         shared_with_email,
         created_at,
         my_permission,
+        last_modified,
         ...rest
       }) => ({
         ...rest,
         permission: my_permission,
         created_at: created_at.toISOString(),
+        last_modified: last_modified.toISOString(),
         shared_with: [
           {
             id: shared_with_id,
@@ -353,4 +368,14 @@ export const editRelationsName = async (
     console.error('Error changing relation name:', error);
     throw error;
   }
+};
+export const getRelationById = async (id: string) => {
+  const q = await query<GetAllServerRelationsQueryType>(
+    `SELECT * FROM task_relation WHERE id=$1;`,
+    [id]
+  );
+  if (q.rows.length == 0) {
+    throw new NotFoundError('No relation found');
+  }
+  return q.rows[0];
 };

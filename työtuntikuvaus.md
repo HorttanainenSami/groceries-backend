@@ -1,3 +1,5 @@
+5.1.26 7h Synkronoinnin käsittelyn logiikka
+3.1.26 2h Tyypitysten ja zod validaation schemojen lisääminen clientin synkronointi datan jästenämiseen
 18.12.25 1h task listan tuotteen uudelleen järjestyksen pysyväistallennus
 14.12.25 3h tietokannan migraatio työkalun käyttöönotto, konffaus ja typescript moduuli onglemat
 13.12.25 2h sokettien virheilmoituksen käsittely eriytetyssä virheenkäisttely moduulissa
@@ -18,9 +20,9 @@
 6.4.25 3h Error luokkien luominen ja errorien try catching
 27.2.25 1h30min käyttäjien etsiminen tietokannasta apia käyttäen
 Error handler ja tokenin vaatiminen 3h
-pysyväistallennus 2h 
+pysyväistallennus 2h
 autentikaation luominen 3h
 routerien luominen 3h
 Projektin luominen ja conffaus 2h
 
-75.5h
+80.5h

@@ -8,9 +8,8 @@ services:
     env_file:
       - .env.test
     tmpfs:
-      - /var/lib/postgresql/data 
-    volumes:
-      - ./src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - /var/lib/postgresql/data
+    # No init.sql - migrations will handle table creation
  
     
 
