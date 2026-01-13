@@ -18,6 +18,7 @@ import {
   reorderTask,
 } from '../tasks/tasks.service';
 import { DatabaseError } from 'pg';
+import { notifyCollaborators } from '../..';
 
 type CheckPermissionAndRelationExistsResponse =
   | { conflict: false }
@@ -89,11 +90,14 @@ const handleTaskModificationCurrying =
 
     const { last_modified: server_last_modified } = response.task;
 
-    if (new Date(last_modified) > new Date(server_last_modified)) {
+    if (new Date(last_modified) >= new Date(server_last_modified)) {
       // Client version is more recent - update
+      console.log('llw success');
       await callback(response.task);
       return { success: true, result: { id: op_id } };
     } else {
+      console.log('llw failed');
+
       // Server version is more recent - discard
       return { success: false, result: { id: op_id, reason: 'Server version is more recent' } };
     }
@@ -128,8 +132,9 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
                 failed.push(conflict.response);
                 break;
               }
-              await createTaskForRelation(op.data);
+              const stored_task = await createTaskForRelation(op.data);
               success.push({ id: op.id });
+              notifyCollaborators(task_relations_id, id, 'task:create', { data: stored_task });
             } catch (e) {
               if (e instanceof DatabaseError && e.code === '23505') {
                 failed.push({ id: op.id, reason: 'UUid collision' });
@@ -160,6 +165,7 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
             );
 
             if (result.success) {
+              notifyCollaborators(task_relations_id, id, 'task:edit', { edited_task: op.data });
               success.push(result.result);
             } else {
               failed.push(result.result);
@@ -176,13 +182,14 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
           } = op;
 
           try {
+            let response: TaskType | null = null;
             const result = await handleTaskModification(
               op.id,
               task_relations_id,
               task_id,
               last_modified,
               async (serverTask: TaskType) => {
-                await editTask({
+                response = await editTask({
                   ...serverTask,
                   ...op.data,
                 });
@@ -190,6 +197,7 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
             );
 
             if (result.success) {
+              notifyCollaborators(task_relations_id, id, 'task:edit', { edited_task: response });
               success.push(result.result);
             } else {
               failed.push(result.result);
@@ -205,7 +213,7 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
           const {
             data: { id: task_id, task_relations_id, last_modified },
           } = op;
-
+          let response: TaskType | null = null;
           try {
             const result = await handleTaskModification(
               op.id,
@@ -213,10 +221,13 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
               task_id,
               last_modified,
               async (serverTask: TaskType) => {
-                await removeTask({ id: serverTask.id });
+                response = await removeTask({ id: serverTask.id });
               }
             );
             if (result.success) {
+              notifyCollaborators(task_relations_id, id, 'task:remove', {
+                remove_tasks: [response],
+              });
               success.push(result.result);
             } else {
               // Server modified after delete was queued
@@ -258,8 +269,11 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
             });
 
             // Update order_idx for valid tasks
-            await Promise.all(validTasks.map((task) => reorderTask(task)));
+            const response = await Promise.all(validTasks.map((task) => reorderTask(task)));
 
+            notifyCollaborators(task_relations_id, id, 'task:reorder', {
+              reordered_tasks: response,
+            });
             success.push({ id: op.id });
           } catch (e) {
             failed.push({ id: op.id, reason: 'Database error' });

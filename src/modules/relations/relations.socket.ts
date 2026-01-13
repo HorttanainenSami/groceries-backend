@@ -1,4 +1,4 @@
-import { getAllRelations } from './relations.service';
+import { getAllRelations, getRelationWithTasks } from './relations.service';
 import {
   changeRelationName,
   create_and_share_relations,
@@ -76,7 +76,10 @@ export const relationsSocketHandler = (io: ServerType, socket: SocketType) => {
         id: user_id,
       });
       callback({ success: true, data: response });
-      io.of('/user').to(user_shared_with).emit('relations:share', response);
+      const returnToShared = await Promise.all(
+        response.map((r) => getRelationWithTasks({ id: r.id }, { id: user_shared_with }))
+      );
+      io.of('/user').to(user_shared_with).emit('relations:share', returnToShared);
     } catch (e) {
       console.log(e);
       const error = e instanceof Error ? e : new Error(String(e));
