@@ -10,6 +10,7 @@ import {
   InterServerEvents,
   SocketData,
   TokenDecoded,
+  UserType,
 } from '@groceries/shared_types';
 import { taskSocketHandlers } from './modules/tasks/tasks.socket';
 import { relationsSocketHandler } from './modules/relations/relations.socket';
@@ -58,17 +59,16 @@ server.listen(port, () => {
   return console.log(`Express is listening at http://localhost:${port}`);
 });
 
-export const notifyCollaborators = async (
+export const notifyCollaborators = async <E extends keyof ServerToClientEvents>(
   relationId: string,
   currentUserId: string,
-  eventName: keyof ServerToClientEvents,
-  data: any
+  eventName: E,
+  data: Parameters<ServerToClientEvents[E]>[0],
+  providedCollaborators?: Omit<UserType, 'password'>[]
 ) => {
-  const collaborators = await getCollaborators({ id: currentUserId }, { id: relationId });
-
-  collaborators
-    .filter(({ id }) => id !== currentUserId)
-    .forEach(({ id }) => {
-      io.of('/user').to(id).emit(eventName, data);
-    });
+  const collaborators =
+    providedCollaborators ?? (await getCollaborators({ id: currentUserId }, { id: relationId }));
+  collaborators.forEach(({ id }) => {
+    (io.of('/user').to(id).emit as (ev: string, ...args: unknown[]) => void)(eventName, data);
+  });
 };

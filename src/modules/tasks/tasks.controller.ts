@@ -28,7 +28,7 @@ export const postTaskToRelation = async (id: string, task: TaskType): Promise<Ta
   if (!permission)
     throw new AuthenticationError('User does not have permission to edit this relation');
 
-  const promise = await createSingleTaskForRelation(task);
+  const result = await createSingleTaskForRelation(task);
   //send lists to server
-  return promise;
+  return result[0];
 };

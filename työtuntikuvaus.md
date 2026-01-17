@@ -1,3 +1,4 @@
+17.1.26 2h bugien korjaus sync toiminnallisuudessa
 5.1.26 7h Synkronoinnin käsittelyn logiikka
 3.1.26 2h Tyypitysten ja zod validaation schemojen lisääminen clientin synkronointi datan jästenämiseen
 18.12.25 1h task listan tuotteen uudelleen järjestyksen pysyväistallennus

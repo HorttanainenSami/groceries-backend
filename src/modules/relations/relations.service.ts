@@ -369,11 +369,11 @@ export const editRelationsName = async ({
     throw error;
   }
 };
-export const getRelationById = async (id: string) => {
-  const q = await query<GetAllServerRelationsQueryType>(
-    `SELECT * FROM task_relation WHERE id=$1;`,
-    [id]
-  );
+export const getRelationById = async (id: string, txQuery?: typeof query) => {
+  const tq = txQuery ?? query;
+  const q = await tq<GetAllServerRelationsQueryType>(`SELECT * FROM task_relation WHERE id=$1;`, [
+    id,
+  ]);
   if (q.rows.length == 0) {
     throw new NotFoundError('No relation found');
   }

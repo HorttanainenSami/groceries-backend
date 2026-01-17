@@ -4,7 +4,7 @@ import { editTaskBy, postTaskToRelation, removeTaskFromRelation } from './tasks.
 import { notifyCollaborators } from '../..';
 import { handleSocketError } from '../../middleware/ErrorHandler';
 
-export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
+export const taskSocketHandlers = (_io: ServerType, socket: SocketType) => {
   const user_id = socket.data.id;
   socket.on('task:join', async ({ relation_id }, callback) => {
     try {
@@ -26,7 +26,9 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
       const stored_task = await postTaskToRelation(user_id, parsed_task);
 
       callback({ success: true, data: stored_task });
-      notifyCollaborators(new_task.task_relations_id, user_id, 'task:create', stored_task);
+      notifyCollaborators(new_task.task_relations_id, user_id, 'task:create', {
+        data: [stored_task],
+      });
     } catch (error) {
       const e = error instanceof Error ? error : new Error(String(error));
       const response = handleSocketError(e);
@@ -44,7 +46,9 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
         parsedTask
       );
       callback({ success: true, data: new_task });
-      notifyCollaborators(new_task.task_relations_id, user_id, 'task:edit', new_task);
+      notifyCollaborators(new_task.task_relations_id, user_id, 'task:edit', {
+        edited_task: new_task,
+      });
     } catch (error) {
       const e = error instanceof Error ? error : new Error(String(error));
       const response = handleSocketError(e);
@@ -60,12 +64,9 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
       );
       callback({ success: true, data: removed_tasks });
       if (removed_tasks.length !== 0) {
-        notifyCollaborators(
-          removed_tasks[0].task_relations_id,
-          user_id,
-          'task:remove',
-          removed_tasks
-        );
+        notifyCollaborators(removed_tasks[0].task_relations_id, user_id, 'task:remove', {
+          remove_tasks: removed_tasks,
+        });
       }
     } catch (error) {
       const e = error instanceof Error ? error : new Error(String(error));
@@ -74,21 +75,18 @@ export const taskSocketHandlers = (io: ServerType, socket: SocketType) => {
     }
   });
 
-  socket.on('task:reorder', async ({ reodred_tasks }, callback) => {
+  socket.on('task:reorder', async ({ reordered_tasks }, callback) => {
     try {
-      const parsedTask = basicTaskSchema.array().parse(reodred_tasks);
+      const parsedTask = basicTaskSchema.array().parse(reordered_tasks);
       const updatedTasks = await Promise.all(
         parsedTask.map((t) =>
           editTaskBy(user_id, t.task_relations_id, t.id, { order_idx: t.order_idx })
         )
       );
       if (updatedTasks.length !== 0) {
-        notifyCollaborators(
-          updatedTasks[0].task_relations_id,
-          user_id,
-          'task:reorder',
-          updatedTasks
-        );
+        notifyCollaborators(updatedTasks[0].task_relations_id, user_id, 'task:reorder', {
+          reordered_tasks: updatedTasks,
+        });
       }
       callback({ success: true, data: updatedTasks });
     } catch (error) {

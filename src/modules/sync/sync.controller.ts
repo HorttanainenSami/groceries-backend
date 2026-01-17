@@ -7,6 +7,7 @@ import {
   getRelationById,
   removeRelation,
   editRelationsName,
+  getCollaborators,
 } from '../relations/relations.service';
 import { AuthorizationError, NotFoundError } from '../../middleware/Error.types';
 import {
@@ -149,7 +150,7 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
           const {
             data: { id: task_id, task_relations_id, last_modified },
           } = op;
-
+          let response: TaskType | null = null;
           try {
             const result = await handleTaskModification(
               op.id,
@@ -157,7 +158,7 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
               task_id,
               last_modified,
               async (serverTask: TaskType) => {
-                await editTask({
+                response = await editTask({
                   ...serverTask,
                   ...op.data,
                 });
@@ -165,7 +166,9 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
             );
 
             if (result.success) {
-              notifyCollaborators(task_relations_id, id, 'task:edit', { edited_task: op.data });
+              if (response) {
+                notifyCollaborators(task_relations_id, id, 'task:edit', { edited_task: response });
+              }
               success.push(result.result);
             } else {
               failed.push(result.result);
@@ -197,7 +200,9 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
             );
 
             if (result.success) {
-              notifyCollaborators(task_relations_id, id, 'task:edit', { edited_task: response });
+              if (response) {
+                notifyCollaborators(task_relations_id, id, 'task:edit', { edited_task: response });
+              }
               success.push(result.result);
             } else {
               failed.push(result.result);
@@ -225,9 +230,11 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
               }
             );
             if (result.success) {
-              notifyCollaborators(task_relations_id, id, 'task:remove', {
-                remove_tasks: [response],
-              });
+              if (response) {
+                notifyCollaborators(task_relations_id, id, 'task:remove', {
+                  remove_tasks: [response],
+                });
+              }
               success.push(result.result);
             } else {
               // Server modified after delete was queued
@@ -288,9 +295,20 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
           } = op;
           try {
             await getUserPermission({ id }, { id: relation_id }); //throws if no authorization
+            console.log('pemission success');
             // Try to delete
+            const collaborators = await getCollaborators({ id }, { id: relation_id });
+            console.log(collaborators);
             await removeRelation({ id: relation_id });
             success.push({ id: op.id });
+            console.log('notify, current user: ', id);
+            notifyCollaborators(
+              relation_id,
+              id,
+              'relations:delete',
+              [[true, relation_id]],
+              collaborators
+            );
           } catch (e) {
             if (e instanceof NotFoundError) {
               // Already deleted - success
@@ -321,13 +339,14 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
 
             // LWW
             if (new Date(last_modified) > new Date(serverRelation.last_modified)) {
-              await editRelationsName({
+              const response = await editRelationsName({
                 relationId: relation_id,
                 newName: name,
                 userId: id,
                 last_modified,
               });
               success.push({ id: op.id });
+              notifyCollaborators(relation_id, id, 'relations:change_name', response);
             } else {
               failed.push({ id: op.id, reason: 'Server version is newer' });
             }

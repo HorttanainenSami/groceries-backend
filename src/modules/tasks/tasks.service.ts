@@ -6,7 +6,7 @@ import { DatabaseError as pgError } from 'pg';
 export const createTaskForRelation = async (
   task: TaskType | TaskType[],
   queryOrTxQuery?: typeof query
-) => {
+): Promise<TaskType[]> => {
   if (queryOrTxQuery === undefined) {
     queryOrTxQuery = query;
   }
@@ -28,7 +28,7 @@ export const createTaskForRelation = async (
 export const createSingleTaskForRelation = async (
   task: TaskType,
   queryOrTxQuery?: typeof query
-) => {
+): Promise<TaskType[]> => {
   if (queryOrTxQuery === undefined) {
     queryOrTxQuery = query;
   }
@@ -49,7 +49,7 @@ export const createSingleTaskForRelation = async (
         task.last_modified,
       ]
     );
-    return q.rows[0];
+    return q.rows;
   } catch (error) {
     if (error instanceof pgError) {
       if (error.code === '23505') {
@@ -63,7 +63,7 @@ export const createSingleTaskForRelation = async (
 export const createMultipleTaskForRelation = async (
   task: TaskType[],
   queryOrTxQuery?: typeof query
-) => {
+): Promise<TaskType[]> => {
   if (queryOrTxQuery === undefined) {
     queryOrTxQuery = query;
   }
