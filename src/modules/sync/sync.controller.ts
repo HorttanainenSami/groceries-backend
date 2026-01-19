@@ -9,7 +9,11 @@ import {
   editRelationsName,
   getCollaborators,
 } from '../relations/relations.service';
-import { AuthorizationError, NotFoundError } from '../../middleware/Error.types';
+import {
+  AuthorizationError,
+  DatabaseError as AppDatabaseError,
+  NotFoundError,
+} from '../../middleware/Error.types';
 import {
   createTaskForRelation,
   editTask,
@@ -18,7 +22,6 @@ import {
   removeTask,
   reorderTask,
 } from '../tasks/tasks.service';
-import { DatabaseError } from 'pg';
 import { notifyCollaborators } from '../..';
 
 type CheckPermissionAndRelationExistsResponse =
@@ -137,7 +140,7 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
               success.push({ id: op.id });
               notifyCollaborators(task_relations_id, id, 'task:create', { data: stored_task });
             } catch (e) {
-              if (e instanceof DatabaseError && e.code === '23505') {
+              if (e instanceof AppDatabaseError && e.databaseError.code === '23505') {
                 failed.push({ id: op.id, reason: 'UUid collision' });
               } else {
                 failed.push({ id: op.id, reason: 'Database error' });

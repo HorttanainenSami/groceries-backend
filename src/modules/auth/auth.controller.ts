@@ -9,6 +9,7 @@ import {
   registerReqBodySchema,
   RegisterResponseType,
   UserType,
+  LoginRequestBodyType,
 } from '@groceries/shared_types';
 import { AuthenticationError } from '../../middleware/Error.types';
 
@@ -34,16 +35,19 @@ export const login = async (req: Request, res: Response<LoginResponseType>, next
   try {
     const initialUser = loginReqBodySchema.safeParse(req.body);
     if (initialUser.error) return next(new AuthenticationError('Invalid credentials'));
-    const user: UserType = await userApi.getUserByEmail(initialUser.data);
-    //same error message if email or pass is wrong for security
-    if (user === null || !(await bcrypt.compare(initialUser.data.password, user.password))) {
-      next(new AuthenticationError('Invalid credentials'));
-    } else {
-      const { email, id } = user;
-      const token = jwt.sign({ email, id }, secret(), { expiresIn: '7d' });
-      res.send({ token, email, id });
-    }
+    res.send(await loginHandler(initialUser.data));
   } catch (err) {
     next(err);
+  }
+};
+export const loginHandler = async (initialUser: LoginRequestBodyType) => {
+  const user: UserType = await userApi.getUserByEmail(initialUser);
+  //same error message if email or pass is wrong for security
+  if (user === null || !(await bcrypt.compare(initialUser.password, user.password))) {
+    throw new AuthenticationError('Invalid credentials');
+  } else {
+    const { email, id } = user;
+    const token = jwt.sign({ email, id }, secret(), { expiresIn: '7d' });
+    return { token, email, id };
   }
 };

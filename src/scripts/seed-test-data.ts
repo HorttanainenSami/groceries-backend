@@ -2,7 +2,7 @@ import { query } from '../database/connection';
 import bcrypt from 'bcrypt';
 import path from 'path';
 
-const TEST_USERS = [
+export const TEST_USERS = [
   {
     email: 'test@example.com',
     password: 'password123',
@@ -39,13 +39,14 @@ async function runMigrations() {
     throw error;
   }
 }
-
-async function seedTestData() {
+async function seedAndMigrateData() {
+  await runMigrations();
+  await seedTestData();
+}
+export async function seedTestData() {
   console.log('🌱 Setting up test database...\n');
 
   try {
-    // 1. Run migrations to create tables
-    await runMigrations();
     // Create test users
     for (const user of TEST_USERS) {
       const hashedPassword = await bcrypt.hash(user.password, 10);
@@ -77,5 +78,15 @@ async function seedTestData() {
     process.exit(1);
   }
 }
-
-seedTestData();
+export async function seedTestRelationData({ relation }) {
+  const createRelationQuery = await query(
+    `
+      INSERT INTO Task_relation(id, name, created_at, last_modified)
+      values ($1,$2,$3,$4) RETURNING *;
+    `,
+    [relation.id, relation.name, relation.created_at, relation.created_at]
+  );
+}
+if (require.main === module) {
+  seedAndMigrateData();
+}
