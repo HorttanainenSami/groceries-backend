@@ -77,7 +77,7 @@ export const TEST_TASKS = [
   },
 ];
 
-async function runMigrations() {
+export async function runMigrations() {
   console.log('📦 Running migrations...\n');
 
   if (!process.env.DATABASE_URL) {
@@ -162,7 +162,6 @@ export async function seedTestRelationsAndTasks() {
           relation.id,
           relation.name,
         ]);
-        console.log(`✓ Created relation: ${relation.name}`);
 
         // Get owner user id and create permission
         const userResult = await tx.query(`SELECT id FROM users WHERE email = $1`, [
@@ -173,7 +172,6 @@ export async function seedTestRelationsAndTasks() {
             `INSERT INTO task_permissions (task_relation_id, user_id, permission) VALUES ($1, $2, 'owner')`,
             [relation.id, userResult.rows[0].id]
           );
-          console.log(`  → Linked to owner: ${relation.owner_email}`);
         }
 
         // Add editor permissions
@@ -186,7 +184,6 @@ export async function seedTestRelationsAndTasks() {
               `INSERT INTO task_permissions (task_relation_id, user_id, permission) VALUES ($1, $2, 'edit')`,
               [relation.id, editorResult.rows[0].id]
             );
-            console.log(`  → Added editor: ${editorEmail}`);
           }
         }
         tx.query('COMMIT');
@@ -207,7 +204,6 @@ export async function seedTestRelationsAndTasks() {
           `INSERT INTO task (id, task, task_relations_id, order_idx) VALUES ($1, $2, $3, $4)`,
           [task.id, task.task, task.relation_id, task.order_idx]
         );
-        console.log(`✓ Created task: ${task.task}`);
       } catch (error: any) {
         if (error.code === '23505') {
           console.log(`→ Task already exists: ${task.task}`);
@@ -225,6 +221,12 @@ export async function seedTestRelationsAndTasks() {
   } finally {
     tx.release();
   }
+}
+export async function clearTestData() {
+  await query(
+    'TRUNCATE TABLE users, task_relation, task, task_permissions RESTART IDENTITY CASCADE',
+    []
+  );
 }
 if (require.main === module) {
   seedData();

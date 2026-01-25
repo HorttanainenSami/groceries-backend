@@ -53,12 +53,6 @@ const onConnection = (socket: SocketType) => {
 
 io.of('/user').on('connection', onConnection);
 
-const port = 3003;
-
-server.listen(port, () => {
-  return console.log(`Express is listening at http://localhost:${port}`);
-});
-
 export const notifyCollaborators = async <E extends keyof ServerToClientEvents>(
   relationId: string,
   currentUserId: string,
@@ -72,3 +66,10 @@ export const notifyCollaborators = async <E extends keyof ServerToClientEvents>(
     (io.of('/user').to(id).emit as (ev: string, ...args: unknown[]) => void)(eventName, data);
   });
 };
+
+const port = 3003;
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(port, () => {
+    return console.log(`Express is listening at http://localhost:${port}`);
+  });
+}

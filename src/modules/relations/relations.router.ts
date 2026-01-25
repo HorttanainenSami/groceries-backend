@@ -13,5 +13,4 @@ router.post('/share', postRelationAndShareWithUser);
 //get all users relations by token
 router.get('', getRelations);
 router.patch('/:relation_id', changeRelationNameHandler);
-//create new task to relation
 router.delete('/:id', removeRelationFromServerHandler);

@@ -5,7 +5,7 @@
   "scripts": {
     "test": "NODE_ENV=test jest --silent",
     "dev-sql": "docker compose --env-file .env.dev up",
-    "test-sql": "docker compose -f docker-compose.test.yml --env-file .env.test up",
+    "test-sql": "docker compose -f docker-compose.test.yml --env-file .env.test up -d && sleep 3 && npm run migrate:test && docker compose -f docker-compose.test.yml logs -f",
     "dev": "NODE_ENV=dev nodemon src/index.ts",
     "test-server": "NODE_ENV=test ts-node src/scripts/seed-test-data.ts && NODE_ENV=test nodemon src/index.ts",
     "build": "tsc",

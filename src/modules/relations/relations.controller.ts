@@ -25,6 +25,7 @@ import {
 import { decodeTokenFromRequest } from '../../resources/utils';
 import { transactionClient, transactionQuery } from '../../database/connection';
 import { createTaskForRelation } from '../tasks/tasks.service';
+import { getUserById } from '../user/user.service';
 
 export const postRelationAndShareWithUser = async (
   req: Request,
@@ -52,6 +53,7 @@ export const create_and_share_relations = async (props: createAndShareRelationsT
   const txQuery = transactionQuery(client);
   try {
     const { relationsWithTasks, id, userSharedWith } = createAndShareRelationsSchema.parse(props);
+    await getUserById(userSharedWith);
 
     await txQuery('BEGIN', []);
     //create relations

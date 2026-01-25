@@ -25,9 +25,9 @@ export const GetAllServerRelationsQuerySchema = BasicRelationSchema.omit({
   created_at: z.date(),
   last_modified: z.date(),
   my_permission: permissionEnum,
-  shared_with_id: z.string(),
-  shared_with_name: z.string(),
-  shared_with_email: z.string(),
+  shared_with_id: z.string().nullable(),
+  shared_with_name: z.string().nullable(),
+  shared_with_email: z.string().nullable(),
   relation_location: z.literal('Server'),
 });
 export type GetAllServerRelationsQueryType = z.infer<typeof GetAllServerRelationsQuerySchema>;
@@ -40,11 +40,20 @@ export const GetAllServerRelationsTransform = GetAllServerRelationsQuerySchema.t
     my_permission,
     last_modified,
     ...rest
-  }) => ({
-    ...rest,
-    permission: my_permission,
-    created_at: created_at.toISOString(),
-    last_modified: last_modified.toISOString(),
-    shared_with: [{ id: shared_with_id, email: shared_with_email, name: shared_with_name }],
-  })
+  }) =>
+    shared_with_id && shared_with_email && shared_with_name
+      ? {
+          ...rest,
+          permission: my_permission,
+          created_at: created_at.toISOString(),
+          last_modified: last_modified.toISOString(),
+          shared_with: [{ id: shared_with_id, email: shared_with_email, name: shared_with_name }],
+        }
+      : {
+          ...rest,
+          permission: my_permission,
+          created_at: created_at.toISOString(),
+          last_modified: last_modified.toISOString(),
+          shared_with: null,
+        }
 );

@@ -184,7 +184,6 @@ export const getAllRelations = async (user: Pick<UserType, 'id'>) => {
 
       [user.id]
     );
-
     return GetAllServerRelationsTransform.array().parse(q.rows);
   } catch (error) {
     if (error instanceof pgError) {
@@ -337,29 +336,7 @@ export const editRelationsName = async ({
       throw new NotFoundError('Relation not found after update');
     }
 
-    return updated_response.rows.map(
-      ({
-        shared_with_id,
-        shared_with_name,
-        shared_with_email,
-        created_at,
-        my_permission,
-        last_modified,
-        ...rest
-      }) => ({
-        ...rest,
-        permission: my_permission,
-        created_at: created_at.toISOString(),
-        last_modified: last_modified.toISOString(),
-        shared_with: [
-          {
-            id: shared_with_id,
-            email: shared_with_email,
-            name: shared_with_name,
-          },
-        ],
-      })
-    )[0];
+    return GetAllServerRelationsTransform.parse(updated_response.rows);
   } catch (error) {
     if (error instanceof pgError) {
       console.error('Database error:', error);
