@@ -1,3 +1,4 @@
+25.1.26 4h testien kirjoitus ja korjaus, käyttämättömän koodin poisto
 17.1.26 2h bugien korjaus sync toiminnallisuudessa
 5.1.26 7h Synkronoinnin käsittelyn logiikka
 3.1.26 2h Tyypitysten ja zod validaation schemojen lisääminen clientin synkronointi datan jästenämiseen
@@ -26,4 +27,4 @@ autentikaation luominen 3h
 routerien luominen 3h
 Projektin luominen ja conffaus 2h
 
-80.5h
+90.5h
