@@ -336,7 +336,7 @@ export const editRelationsName = async ({
       throw new NotFoundError('Relation not found after update');
     }
 
-    return GetAllServerRelationsTransform.parse(updated_response.rows);
+    return GetAllServerRelationsTransform.parse(updated_response.rows[0]);
   } catch (error) {
     if (error instanceof pgError) {
       console.error('Database error:', error);

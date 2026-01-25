@@ -9,6 +9,7 @@ import {
   TEST_RELATIONS,
   TEST_USERS,
   TEST_TASKS,
+  clearTestData,
 } from '../../../../scripts/seed-test-data';
 import { loginHandler } from '../../../../modules/auth/auth.controller';
 import { getRelationById } from '../../../../modules/relations/relations.service';
@@ -34,13 +35,6 @@ const operationId2 = '00000000-0000-0000-0000-000000000002';
 const operationId3 = '00000000-0000-0000-0000-000000000003';
 const operationId4 = '00000000-0000-0000-0000-000000000004';
 const operationId5 = '00000000-0000-0000-0000-000000000005';
-
-const cleanDatabase = async () => {
-  await query(
-    'TRUNCATE TABLE users, task_relation, task, task_permissions RESTART IDENTITY CASCADE',
-    []
-  );
-};
 
 const createTaskOperation = (
   opId: string,
@@ -177,20 +171,18 @@ const deleteRelationOperation = (
   timestamp: new Date().toISOString(),
   retryCount: 0,
 });
-
+afterAll(async () => {
+  await clearTestData();
+  pool.end();
+});
+beforeEach(async () => {
+  jest.resetAllMocks();
+  await clearTestData();
+  await seedTestData();
+  user1 = await loginHandler(TEST_USERS[0]);
+  user2 = await loginHandler(TEST_USERS[1]);
+});
 describe('Task operations', () => {
-  beforeEach(async () => {
-    jest.resetAllMocks();
-    await cleanDatabase();
-    await seedTestData();
-    user1 = await loginHandler(TEST_USERS[0]);
-    user2 = await loginHandler(TEST_USERS[1]);
-  });
-
-  afterAll(async () => {
-    await cleanDatabase();
-    pool.end();
-  });
   describe('Create', () => {
     it('succeeds when relation exists and user authorized', async () => {
       const { token, id } = user1;
@@ -588,7 +580,6 @@ describe('Task operations', () => {
         .set('Authorization', `Bearer ${token}`)
         .send([operation]);
       expect(response.status).toBe(200);
-      console.log(response.body);
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
@@ -612,7 +603,6 @@ describe('Task operations', () => {
         .send([operation]);
 
       expect(response.status).toBe(200);
-      console.log(response.body);
       expect(response.body.success).toHaveLength(1);
       expect(response.body.success[0].id).toBe(operation.id);
       expect(response.body.failed).toHaveLength(0);
@@ -784,19 +774,6 @@ describe('Task operations', () => {
 });
 
 describe('Relation operations', () => {
-  beforeEach(async () => {
-    jest.resetAllMocks();
-    await cleanDatabase();
-    await seedTestData();
-    user1 = await loginHandler(TEST_USERS[0]);
-    user2 = await loginHandler(TEST_USERS[1]);
-  });
-
-  afterAll(async () => {
-    await cleanDatabase();
-    pool.end();
-  });
-
   describe('Edit', () => {
     it('succeeds when client is more recent (LWW)', async () => {
       const { token, id } = user1;
@@ -1042,19 +1019,6 @@ describe('Relation operations', () => {
 });
 
 describe('Batch operations', () => {
-  beforeEach(async () => {
-    jest.resetAllMocks();
-    await cleanDatabase();
-    await seedTestData();
-    user1 = await loginHandler(TEST_USERS[0]);
-    user2 = await loginHandler(TEST_USERS[1]);
-  });
-
-  afterAll(async () => {
-    await cleanDatabase();
-    pool.end();
-  });
-
   it('handles mixed batch with 3 successful and 2 failed operations', async () => {
     const { token, id } = user1;
     (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });

@@ -90,7 +90,7 @@ describe('Auth Controller', () => {
       expect(userApi.getUserByEmail).toHaveBeenCalledWith(req.body);
       expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed-password');
       expect(jwt.sign).toHaveBeenCalledWith({ email: 'test@example.com', id: 1 }, 'test-secret', {
-        expiresIn: '24h',
+        expiresIn: '7d',
       });
       expect(res.send).toHaveBeenCalledWith({
         token: mockToken,

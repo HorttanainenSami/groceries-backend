@@ -1,6 +1,7 @@
 module.exports = {
   preset: 'ts-jest', // Use ts-jest to handle TypeScript files
   testEnvironment: 'node', // Set the test environment to Node.js
+  maxWorkers: 1, // Run tests sequentially to avoid DB conflicts
   testMatch: ['**/tests/unit/**/*.test.ts', '**/tests/integration/**/*.test.ts'], // Match all test files with .test.ts extension
   moduleFileExtensions: ['ts', 'js', 'json'], // Recognize these file extensions
   moduleNameMapper: {

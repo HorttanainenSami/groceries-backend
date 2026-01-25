@@ -8,9 +8,9 @@ import {
   LocalRelationWithTasksType,
   LoginResponseType,
 } from '@groceries/shared_types';
-import { pool } from '../../../../database/connection';
 import { clearTestData, seedTestData, TEST_USERS } from '../../../../scripts/seed-test-data';
 import { loginHandler } from '../../../../modules/auth/auth.controller';
+import { pool } from '../../../../database/connection';
 
 // Mock decodeToken to simulate authentication
 jest.mock('../../../../resources/utils', () => {
@@ -53,11 +53,12 @@ const relations: LocalRelationWithTasksType = {
   tasks: tasks,
   last_modified: new Date('2024-01-01T00:00:00.000Z').toISOString(),
 };
+afterAll(async () => {
+  await pool.end();
+  jest.clearAllMocks();
+});
+
 describe('POST /relations/share', () => {
-  afterAll(() => {
-    jest.clearAllMocks();
-    pool.end();
-  });
   beforeEach(async () => {
     await clearTestData();
     await seedTestData();
@@ -159,10 +160,6 @@ describe('POST /relations/share', () => {
 });
 
 describe('GET /relations', () => {
-  afterAll(() => {
-    jest.clearAllMocks();
-    pool.end();
-  });
   beforeEach(async () => {
     await clearTestData();
     await seedTestData();

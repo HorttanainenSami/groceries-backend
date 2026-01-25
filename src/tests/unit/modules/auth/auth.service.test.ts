@@ -1,6 +1,6 @@
 import { query } from '../../../../database/connection';
 import { AuthenticationError, DatabaseError } from '../../../../middleware/Error.types';
-import AuthService from '../../../../modules/auth/auth.service';
+import authService from '../../../../modules/auth/auth.service';
 import { DatabaseError as pgError } from 'pg';
 import bcrypt from 'bcrypt';
 
@@ -25,7 +25,7 @@ describe('AuthService', () => {
         rows: [mockResponse],
         rowCount: 1,
       });
-      const response = await AuthService.createUser(mockUser);
+      const response = await authService.createUser(mockUser);
       expect(query).toHaveBeenCalledWith(
         'INSERT INTO users (email, password, name ) values ($1, $2, $3) RETURNING *;',
         [mockUser.email, mockUser.password, mockUser.name]
@@ -42,7 +42,7 @@ describe('AuthService', () => {
       const mockResponseError = new DatabaseError('Failed to create user', mockError);
       (query as jest.Mock).mockRejectedValue(mockError);
 
-      await expect(AuthService.createUser(mockUser)).rejects.toThrow(mockResponseError);
+      await expect(authService.createUser(mockUser)).rejects.toThrow(mockResponseError);
     });
   });
 
@@ -65,7 +65,7 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      await expect(AuthService.getUserByEmail(mockUser)).resolves.toStrictEqual(mockResponse);
+      await expect(authService.getUserByEmail(mockUser)).resolves.toStrictEqual(mockResponse);
     });
     it('should return AuthenticationError if email is not correct', async () => {
       const mockUser = {
@@ -79,7 +79,7 @@ describe('AuthService', () => {
         rowCount: 0,
       });
 
-      await expect(AuthService.getUserByEmail(mockUser)).rejects.toThrow(mockError);
+      await expect(authService.getUserByEmail(mockUser)).rejects.toThrow(mockError);
     });
     it('should return AuthenticationError if passwords doesnt match', async () => {
       const mockUser = {
@@ -98,7 +98,7 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(AuthService.getUserByEmail(mockUser)).rejects.toThrow(mockError);
+      await expect(authService.getUserByEmail(mockUser)).rejects.toThrow(mockError);
     });
   });
 });
