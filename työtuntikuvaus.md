@@ -1,5 +1,6 @@
 | Päivämäärä | Käytetty aika | Mitä tein                                                                                                                     |
 | :--------- | :------------ | :---------------------------------------------------------------------------------------------------------------------------- |
+| 27.1.26    | 1h            | Readmen testaus                                                                                                               |
 | 26.1.26    | 3h            | Readmen kirjoittaminen                                                                                                        |
 | 25.1.26    | 4h            | testien kirjoitus ja korjaus, käyttämättömän koodin poisto                                                                    |
 | 17.1.26    | 2h            | bugien korjaus sync toiminnallisuudessa                                                                                       |
@@ -29,4 +30,4 @@
 | 21.1.25    | 3h            | autentikaation luominen                                                                                                       |
 | 21.1.25    | 3h            | routerien luominen                                                                                                            |
 | 21.1.25    | 2h            | Projektin luominen ja conffaus                                                                                                |
-| Yht.       | 93.5h         |                                                                                                                               |
+| Yht.       | 94.5h         |                                                                                                                               |

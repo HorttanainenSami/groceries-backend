@@ -4,12 +4,8 @@ services:
     image: postgres:17
     container_name: postgres-groceries_test
     ports:
-      - 5434:5432
+      - 127.0.0.1:5434:5432
     env_file:
       - .env.test
     tmpfs:
       - /var/lib/postgresql/data
-    # No init.sql - migrations will handle table creation
- 
-    
-

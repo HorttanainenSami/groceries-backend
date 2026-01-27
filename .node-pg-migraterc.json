@@ -1,0 +1,14 @@
+{
+  "migrations-table": "pgmigrations",
+  "migrations-dir": "src/database/migrations",
+  "direction": "up",
+  "count": 2147483647,
+  "verbose": true,
+  "create-schema": true,
+  "create-migrations-schema": false,
+  "check-order": true,
+  "ignore-pattern": "\\..*",
+  "schema": "public",
+  "decamelize": false,
+  "migration-file-language": "js"
+}

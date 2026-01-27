@@ -25,13 +25,13 @@ Myös reaaliaikainen muokkaaminen tuli projektin aikana tarpeelliseksi. Mielenki
 
 | Käytetty aika |                                                                                                                      |
 | :------------ | -------------------------------------------------------------------------------------------------------------------: |
-| 95 h          |                                                                         [Frontendin työaikakirjaus](aikataulutus.md) |
-| 93.5 h        | [Backendin työaikakirjaus](https://github.com/HorttanainenSami/groceries-backend/blob/master/ty%C3%B6tuntikuvaus.md) |
-| 190 h         |                                                                                                             Yhteensä |
+| 92 h          |      [Frontendin työaikakirjaus](https://github.com/HorttanainenSami/groceries-frontend/blob/master/aikataulutus.md) |
+| 94.5 h        | [Backendin työaikakirjaus](https://github.com/HorttanainenSami/groceries-backend/blob/master/ty%C3%B6tuntikuvaus.md) |
+| 187 h         |                                                                                                             Yhteensä |
 
 ## Esivaatimukset
 
-- Node.js (v18+)
+- Node.js (v20+)
 - Docker & Docker Compose
 - npm
 
@@ -93,54 +93,56 @@ Listassa rajatapaukset mitkä tuottavat onnistuneen tilanteen kun muokattava koh
 
 ### Alustus
 
+### Konfiguraatiot
+
 ---
 
-1. Luo .env.dev tiedosto
+1. Luo `.env.dev` ja `.env.test` tiedosto. Käytä pohjana `env.example` tiedostoa
 
-```.env
-DATABASE_PORT=5434
-DATABASE_USER=sami
+```.env.dev
+DATABASE_PORT=5433
+DATABASE_USER=DEV_USER
 DATABASE_HOST=localhost
-DATABASE_PASSWORD=secret
+DATABASE_PASSWORD=SALASANA
 DATABASE_NAME=groceries
-SECRET=SECRET
+SECRET=SALAISUUS
 
-POSTGRES_PASSWORD=secret
-POSTGRES_USER=sami
+POSTGRES_USER=DEV_USER
+POSTGRES_PASSWORD=SALASANA
 POSTGRES_DB=groceries
 
-# korvaa <...> kohdat täyttämilläsi ylläolevilla tiedoilla
-# esim: DATABASE_URL=postgresql://sami:secret@localhost:5434/groceries
+DATABASE_URL=postgres://DEV_USER:SALASANA@localhost:5433/groceries
 
-DATABASE_URL=postgresql://<POSTGRES_USER>:<POSTGRES_PASSWORD>@<DATABASE_HOST>:<DATABASE_PORT>/<DATABASE_NAME>
 ```
 
-2. lataa riippuvuudet projektille `npm i`
+---
 
-3. Käynnistä docker
+1. lataa riippuvuudet projektille `npm i`
 
-4. Alusta Docker image tietokannalle `npm run dev-sql`
+2. Käynnistä docker
 
+3. Alusta Docker image tietokannalle `npm run dev-sql`
+
+4. Alusta tietokannan migraatiot `npm run migrate:up`
 5. `npm run dev` avaa projektin dev ympäristössä
 
 ### Testaus
 
 Luo .env.test tiedosto jossa on seuraavat kohdat
 
-```
-
+```.env.test
 DATABASE_PORT=5434
-DATABASE_USER=sami
+DATABASE_USER=TEST
 DATABASE_HOST=localhost
-DATABASE_PASSWORD=secret
-DATABASE_NAME=groceries
-SECRET=SECRET
+DATABASE_PASSWORD=SALASANA
+DATABASE_NAME=groceries_test
+SECRET=SALAISUUS
 
-POSTGRES_PASSWORD=secret
-POSTGRES_USER=sami
-POSTGRES_DB=groceries
+POSTGRES_USER=TEST
+POSTGRES_PASSWORD=SALASANA
+POSTGRES_DB=groceries_test
 
-DATABASE_URL=postgresql://sami:secret@localhost:5434/groceries
+DATABASE_URL=postgres://TEST:SALASANA@localhost:5434/groceries_test
 
 ```
 

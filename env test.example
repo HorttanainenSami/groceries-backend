@@ -1,0 +1,12 @@
+DATABASE_PORT=5434              
+DATABASE_USER=TEST          
+DATABASE_HOST=localhost
+DATABASE_PASSWORD=SALASANA     
+DATABASE_NAME=groceries_test
+SECRET=SALAISUUS               
+
+POSTGRES_USER=TEST          
+POSTGRES_PASSWORD=SALASANA      
+POSTGRES_DB=groceries_test
+
+DATABASE_URL=postgres://TEST:SALASANA@localhost:5434/groceries_test  
