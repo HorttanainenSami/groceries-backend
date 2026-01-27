@@ -123,7 +123,7 @@ DATABASE_URL=postgres://DEV_USER:SALASANA@localhost:5433/groceries
 
 3. Alusta Docker image tietokannalle `npm run dev-sql`
 
-4. Alusta tietokannan migraatiot `npm run migrate:up`
+4. Alusta tietokannan migraatiot `npm run migrate:dev`
 5. `npm run dev` avaa projektin dev ympäristössä
 
 ### Testaus
