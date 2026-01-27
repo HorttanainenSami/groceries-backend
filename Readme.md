@@ -25,9 +25,9 @@ Myös reaaliaikainen muokkaaminen tuli projektin aikana tarpeelliseksi. Mielenki
 
 | Käytetty aika |                                                                                                                      |
 | :------------ | -------------------------------------------------------------------------------------------------------------------: |
-| 92 h          |      [Frontendin työaikakirjaus](https://github.com/HorttanainenSami/groceries-frontend/blob/master/aikataulutus.md) |
+| 97.5 h        |      [Frontendin työaikakirjaus](https://github.com/HorttanainenSami/groceries-frontend/blob/master/aikataulutus.md) |
 | 94.5 h        | [Backendin työaikakirjaus](https://github.com/HorttanainenSami/groceries-backend/blob/master/ty%C3%B6tuntikuvaus.md) |
-| 187 h         |                                                                                                             Yhteensä |
+| 192 h         |                                                                                                             Yhteensä |
 
 ## Esivaatimukset
 
