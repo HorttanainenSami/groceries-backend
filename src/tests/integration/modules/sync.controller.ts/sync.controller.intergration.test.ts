@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { jest } from '@jest/globals';
 import { app } from '../../../../app';
-import { PendingOperation, LoginResponseType } from '@groceries/shared_types';
+import { LoginResponseType } from '@groceries/shared_types';
 import { pool, query } from '../../../../database/connection';
 import { decodeTokenFromRequest } from '../../../../resources/utils';
 import {
@@ -12,7 +12,17 @@ import {
   clearTestData,
 } from '../../../../scripts/seed-test-data';
 import { loginHandler } from '../../../../modules/auth/auth.controller';
-import { getRelationById } from '../../../../modules/relations/relations.service';
+import { getRelationWithPermissionsById } from '../../../../modules/relations/relations.service';
+import {
+  createTaskOperation,
+  deleteRelationOperation,
+  deleteTaskOperation,
+  editRelationOperation,
+  editTaskOperation,
+  reorderTaskOperation,
+  toggleTaskOperation,
+} from './sync.controller.integrations.utils';
+import { notifyCollaborators } from '../../../..';
 
 jest.mock('../../../../resources/utils', () => {
   const originalModule = jest.requireActual('../../../../resources/utils');
@@ -26,6 +36,8 @@ jest.mock('../../../..', () => ({
   notifyCollaborators: jest.fn(),
 }));
 
+const mockNotifyCollaborators = notifyCollaborators as jest.Mock;
+
 let user1: LoginResponseType;
 let user2: LoginResponseType;
 const taskId = '00000000-0000-0000-0000-000000000012';
@@ -36,141 +48,6 @@ const operationId3 = '00000000-0000-0000-0000-000000000003';
 const operationId4 = '00000000-0000-0000-0000-000000000004';
 const operationId5 = '00000000-0000-0000-0000-000000000005';
 
-const createTaskOperation = (
-  opId: string,
-  taskId: string,
-  relationId: string,
-  taskName: string = 'Test Task'
-): PendingOperation => ({
-  id: opId,
-  type: 'task-create',
-  data: {
-    id: taskId,
-    task: taskName,
-    task_relations_id: relationId,
-    order_idx: 0,
-    last_modified: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    completed_at: null,
-    completed_by: null,
-  },
-  timestamp: new Date().toISOString(),
-  retryCount: 0,
-});
-
-const editTaskOperation = (
-  opId: string,
-  taskId: string,
-  relationId: string,
-  taskName: string,
-  lastModified: string
-): PendingOperation => ({
-  id: opId,
-  type: 'task-edit',
-  data: {
-    id: taskId,
-    task: taskName,
-    task_relations_id: relationId,
-    last_modified: lastModified,
-    completed_at: null,
-    completed_by: null,
-  },
-  timestamp: new Date().toISOString(),
-  retryCount: 0,
-});
-
-const toggleTaskOperation = (
-  opId: string,
-  taskId: string,
-  relationId: string,
-  lastModified: string,
-  completedAt: string | null,
-  completedBy: string | null
-): PendingOperation => ({
-  id: opId,
-  type: 'task-toggle',
-  data: {
-    id: taskId,
-    task_relations_id: relationId,
-    last_modified: lastModified,
-    completed_at: completedAt,
-    completed_by: completedBy,
-  },
-  timestamp: new Date().toISOString(),
-  retryCount: 0,
-});
-
-const deleteTaskOperation = (
-  opId: string,
-  taskId: string,
-  relationId: string,
-  lastModified: string
-): PendingOperation => ({
-  id: opId,
-  type: 'task-delete',
-  data: {
-    id: taskId,
-    task_relations_id: relationId,
-    last_modified: lastModified,
-  },
-  timestamp: new Date().toISOString(),
-  retryCount: 0,
-});
-
-const reorderTaskOperation = (
-  opId: string,
-  tasks: { id: string; order_idx: number; task_relations_id: string; last_modified: string }[]
-): PendingOperation => ({
-  id: opId,
-  type: 'task-reorder',
-  data: tasks,
-  timestamp: new Date().toISOString(),
-  retryCount: 0,
-});
-
-const editRelationOperation = (
-  opId: string,
-  relationId: string,
-  name: string,
-  lastModified: string,
-  createdAt: string
-): PendingOperation => ({
-  id: opId,
-  type: 'relation-edit',
-  data: {
-    id: relationId,
-    name: name,
-    relation_location: 'Server' as const,
-    created_at: createdAt,
-    last_modified: lastModified,
-    permission: 'owner' as const,
-    shared_with: [],
-  },
-  timestamp: new Date().toISOString(),
-  retryCount: 0,
-});
-
-const deleteRelationOperation = (
-  opId: string,
-  relationId: string,
-  name: string,
-  lastModified: string,
-  createdAt: string
-): PendingOperation => ({
-  id: opId,
-  type: 'relation-delete',
-  data: {
-    id: relationId,
-    name: name,
-    relation_location: 'Server' as const,
-    created_at: createdAt,
-    last_modified: lastModified,
-    permission: 'owner' as const,
-    shared_with: [],
-  },
-  timestamp: new Date().toISOString(),
-  retryCount: 0,
-});
 afterAll(async () => {
   await clearTestData();
   pool.end();
@@ -202,6 +79,9 @@ describe('Task operations', () => {
 
       // Verify task was created in database
       const taskResult = await query('SELECT * FROM task WHERE id = $1', [taskId]);
+      expect(mockNotifyCollaborators).toHaveBeenCalledWith(relationId, id, 'task:create', {
+        data: taskResult.rows,
+      });
       expect(taskResult.rows).toHaveLength(1);
       expect(taskResult.rows[0].task).toBe('New Task');
     });
@@ -226,7 +106,8 @@ describe('Task operations', () => {
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
-      expect(response.body.failed[0].reason).toBe('relation deleted');
+      expect(response.body.failed[0].reason).toBe('Relation deleted');
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
 
     it('fails when user is unauthorized', async () => {
@@ -244,7 +125,8 @@ describe('Task operations', () => {
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
-      expect(response.body.failed[0].reason).toBe('unauthorized');
+      expect(response.body.failed[0].reason).toBe('Unauthorized');
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
 
     it('fails on UUID collision', async () => {
@@ -275,6 +157,7 @@ describe('Task operations', () => {
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation2.id);
       expect(response.body.failed[0].reason).toBe('UUid collision');
+      expect(mockNotifyCollaborators).toHaveBeenCalledTimes(1);
     });
   });
   describe('Edit', () => {
@@ -304,11 +187,17 @@ describe('Task operations', () => {
 
       // Verify task was updated in database
       const taskResult = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
+      expect(mockNotifyCollaborators).toHaveBeenCalledWith(
+        existingTask.relation_id,
+        id,
+        'task:edit',
+        { edited_task: taskResult.rows[0] }
+      );
       expect(taskResult.rows).toHaveLength(1);
       expect(taskResult.rows[0].task).toBe('Updated Milk');
     });
 
-    it('fails when server is more recent (LWW)', async () => {
+    it('fails when server is more recent (LWW) and returns the resolved task ', async () => {
       const { token, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
@@ -332,6 +221,10 @@ describe('Task operations', () => {
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
       expect(response.body.failed[0].reason).toBe('Server version is more recent');
+      expect(response.body.failed[0].serverTask).toStrictEqual(
+        JSON.parse(JSON.stringify(task.rows[0]))
+      );
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
 
       // Verify task was NOT updated in database
       const taskResult = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
@@ -361,6 +254,7 @@ describe('Task operations', () => {
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
       expect(response.body.failed[0].reason).toBe('task deleted');
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
 
     it('fails when user is unauthorized', async () => {
@@ -386,7 +280,8 @@ describe('Task operations', () => {
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
-      expect(response.body.failed[0].reason).toBe('unauthorized');
+      expect(response.body.failed[0].reason).toBe('Unauthorized');
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
   });
   describe('Toggle', () => {
@@ -417,12 +312,18 @@ describe('Task operations', () => {
 
       // Verify task was toggled in database
       const taskResult = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
+      expect(mockNotifyCollaborators).toHaveBeenCalledWith(
+        existingTask.relation_id,
+        id,
+        'task:edit',
+        { edited_task: taskResult.rows[0] }
+      );
       expect(taskResult.rows).toHaveLength(1);
       expect(taskResult.rows[0].completed_at).not.toBeNull();
       expect(taskResult.rows[0].completed_by).toBe(user1.id);
     });
 
-    it('fails when server is more recent (LWW)', async () => {
+    it('fails when server is more recent (LWW) and returns resolved task', async () => {
       const { token, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
@@ -448,6 +349,10 @@ describe('Task operations', () => {
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
       expect(response.body.failed[0].reason).toBe('Server version is more recent');
+      expect(response.body.failed[0].serverTask).toStrictEqual(
+        JSON.parse(JSON.stringify(task.rows[0]))
+      );
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
 
       // Verify task was not toggled
       const taskResult = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
@@ -478,6 +383,7 @@ describe('Task operations', () => {
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
       expect(response.body.failed[0].reason).toBe('task deleted');
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
     it('fails when user has no permission', async () => {
       const { token, id } = user2;
@@ -502,7 +408,8 @@ describe('Task operations', () => {
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
-      expect(response.body.failed[0].reason).toBe('unauthorized');
+      expect(response.body.failed[0].reason).toBe('Unauthorized');
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
   });
   describe('Delete', () => {
@@ -511,6 +418,9 @@ describe('Task operations', () => {
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
       const futureTime = new Date(Date.now() + 10000).toISOString();
+
+      // Get task before deletion to verify notification data
+      const taskBeforeDelete = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
 
       const operation = deleteTaskOperation(
         operationId,
@@ -528,13 +438,19 @@ describe('Task operations', () => {
       expect(response.body.success).toHaveLength(1);
       expect(response.body.success[0].id).toBe(operation.id);
       expect(response.body.failed).toHaveLength(0);
+      expect(mockNotifyCollaborators).toHaveBeenCalledWith(
+        existingTask.relation_id,
+        id,
+        'task:remove',
+        { remove_tasks: taskBeforeDelete.rows }
+      );
 
       // Verify task was deleted from database
       const taskResult = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
       expect(taskResult.rows).toHaveLength(0);
     });
 
-    it('fails when server is more recent (LWW)', async () => {
+    it('fails when server is more recent (LWW) and returns resolved task', async () => {
       const { token, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
@@ -558,6 +474,10 @@ describe('Task operations', () => {
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
       expect(response.body.failed[0].reason).toBe('Server version is more recent');
+      expect(response.body.failed[0].serverTask).toStrictEqual(
+        JSON.parse(JSON.stringify(task.rows[0]))
+      );
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
 
       // Verify task was NOT deleted from database
       const taskResult = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
@@ -584,6 +504,7 @@ describe('Task operations', () => {
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
       expect(response.body.failed[0].reason).toBe('Relation deleted');
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
     it('succeeds when task is already deleted', async () => {
       const { token, id } = user1;
@@ -606,6 +527,7 @@ describe('Task operations', () => {
       expect(response.body.success).toHaveLength(1);
       expect(response.body.success[0].id).toBe(operation.id);
       expect(response.body.failed).toHaveLength(0);
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
     it('fails when user has no permission', async () => {
       const { token, id } = user2;
@@ -628,7 +550,8 @@ describe('Task operations', () => {
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
-      expect(response.body.failed[0].reason).toBe('unauthorized');
+      expect(response.body.failed[0].reason).toBe('Unauthorized');
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
   });
   describe('Reorder', () => {
@@ -667,6 +590,9 @@ describe('Task operations', () => {
       // tasks were reordered in database
       const task1Result = await query('SELECT * FROM task WHERE id = $1', [task1.id]);
       const task2Result = await query('SELECT * FROM task WHERE id = $1', [task2.id]);
+      expect(mockNotifyCollaborators).toHaveBeenCalledWith(task1.relation_id, id, 'task:reorder', {
+        reordered_tasks: [...task1Result.rows, ...task2Result.rows],
+      });
       expect(task1Result.rows[0].order_idx).toBe(1);
       expect(task2Result.rows[0].order_idx).toBe(0);
     });
@@ -706,6 +632,9 @@ describe('Task operations', () => {
       //task1 should keep original order_idx, task2 should be updated
       const task1Result = await query('SELECT * FROM task WHERE id = $1', [task1.id]);
       const task2Result = await query('SELECT * FROM task WHERE id = $1', [task2.id]);
+      expect(mockNotifyCollaborators).toHaveBeenCalledWith(task1.relation_id, id, 'task:reorder', {
+        reordered_tasks: task2Result.rows,
+      });
       expect(task1Result.rows[0].order_idx).toBe(task1.order_idx); // unchanged
       expect(task2Result.rows[0].order_idx).toBe(10); // updated
     });
@@ -741,6 +670,12 @@ describe('Task operations', () => {
 
       // existing task was reordered
       const taskResult = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
+      expect(mockNotifyCollaborators).toHaveBeenCalledWith(
+        existingTask.relation_id,
+        id,
+        'task:reorder',
+        { reordered_tasks: taskResult.rows }
+      );
       expect(taskResult.rows[0].order_idx).toBe(5);
     });
 
@@ -768,7 +703,8 @@ describe('Task operations', () => {
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
-      expect(response.body.failed[0].reason).toBe('unauthorized');
+      expect(response.body.failed[0].reason).toBe('Unauthorized');
+      expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
   });
 });
@@ -808,14 +744,12 @@ describe('Relation operations', () => {
       expect(relationResult.rows[0].name).toBe('Updated Groceries');
     });
 
-    it('fails when server is more recent (LWW)', async () => {
+    it('fails when server is more recent (LWW) and returns resolved relation', async () => {
       const { token, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingRelation = TEST_RELATIONS[0];
-      const relation = await query('SELECT * FROM task_relation WHERE id = $1', [
-        existingRelation.id,
-      ]);
-      const pastTime = new Date(relation.rows[0].last_modified - 100000).toISOString();
+      const relation = await getRelationWithPermissionsById(user1.id, existingRelation.id);
+      const pastTime = new Date(new Date(relation.last_modified).getTime() - 100000).toISOString();
       const createdAt = new Date().toISOString();
 
       const operation = editRelationOperation(
@@ -836,6 +770,9 @@ describe('Relation operations', () => {
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
       expect(response.body.failed[0].reason).toBe('Server version is more recent');
+      expect(response.body.failed[0].serverRelations).toStrictEqual(
+        JSON.parse(JSON.stringify(relation))
+      );
 
       // Verify relation was NOT updated in database
       const relationResult = await query('SELECT * FROM task_relation WHERE id = $1', [
@@ -867,7 +804,7 @@ describe('Relation operations', () => {
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
-      expect(response.body.failed[0].reason).toBe('relation deleted');
+      expect(response.body.failed[0].reason).toBe('Relation deleted');
     });
 
     it('fails when user is unauthorized', async () => {
@@ -894,7 +831,7 @@ describe('Relation operations', () => {
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
-      expect(response.body.failed[0].reason).toBe('unauthorized');
+      expect(response.body.failed[0].reason).toBe('Unauthorized');
     });
   });
 
@@ -903,7 +840,7 @@ describe('Relation operations', () => {
       const { token, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingRelation = TEST_RELATIONS[0];
-      const stored_relation = await getRelationById(existingRelation.id);
+      const stored_relation = await getRelationWithPermissionsById(user1.id, existingRelation.id);
       const futureTime = new Date(
         new Date(stored_relation.created_at).getTime() + 10000
       ).toISOString();
@@ -913,7 +850,7 @@ describe('Relation operations', () => {
         existingRelation.id,
         existingRelation.name,
         futureTime,
-        stored_relation.created_at.toISOString()
+        stored_relation.created_at
       );
 
       const response = await request(app)
@@ -931,11 +868,11 @@ describe('Relation operations', () => {
       ]);
       expect(relationResult.rows).toHaveLength(0);
     });
-    it('fails when server is more recent (LLW)', async () => {
+    it('fails when server is more recent (LLW) and returns resolved relation', async () => {
       const { token, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingRelation = TEST_RELATIONS[0];
-      const stored_relation = await getRelationById(existingRelation.id);
+      const stored_relation = await getRelationWithPermissionsById(user1.id, existingRelation.id);
       const pastTime = new Date(
         new Date(stored_relation.created_at).getTime() - 10000
       ).toISOString();
@@ -945,7 +882,7 @@ describe('Relation operations', () => {
         existingRelation.id,
         existingRelation.name,
         pastTime,
-        stored_relation.created_at.toISOString()
+        stored_relation.created_at
       );
 
       const response = await request(app)
@@ -957,6 +894,10 @@ describe('Relation operations', () => {
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
+      expect(response.body.failed[0].reason).toBe('Server version is more recent');
+      expect(response.body.failed[0].serverRelations).toStrictEqual(
+        JSON.parse(JSON.stringify(stored_relation))
+      );
 
       // relation was not deleted from database
       const relationResult = await query('SELECT * FROM task_relation WHERE id = $1', [
@@ -1013,7 +954,7 @@ describe('Relation operations', () => {
       expect(response.body.success).toHaveLength(0);
       expect(response.body.failed).toHaveLength(1);
       expect(response.body.failed[0].id).toBe(operation.id);
-      expect(response.body.failed[0].reason).toBe('unauthorized');
+      expect(response.body.failed[0].reason).toBe('Unauthorized');
     });
   });
 });

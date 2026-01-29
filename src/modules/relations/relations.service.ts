@@ -15,9 +15,10 @@ import {
   ServerRelationWithTasksType,
 } from '@groceries/shared_types';
 import {
-  GetRelationByIdQueryResponseType,
+  GetRelationWithTasksByIdQueryResponseType,
   GetAllServerRelationsQueryType,
   GetAllServerRelationsTransform,
+  BasicRelationType,
 } from './relations.types';
 
 type CreateTaskRelationResponseType = Omit<ServerRelationType, 'created_at'> & { created_at: Date };
@@ -66,7 +67,7 @@ export const getRelationWithTasks = async (
     //relations info and permission
     const collaborators = await getCollaborators(user_id, task_relation_id, txQuery);
     const user_permission = await getUserPermission(user_id, task_relation_id, txQuery);
-    const queryRelationById = await txQuery<GetRelationByIdQueryResponseType>(
+    const queryRelationById = await txQuery<GetRelationWithTasksByIdQueryResponseType>(
       `
         SELECT
           tr.id as relation_id,
@@ -346,13 +347,56 @@ export const editRelationsName = async ({
     throw error;
   }
 };
+
 export const getRelationById = async (id: string, txQuery?: typeof query) => {
   const tq = txQuery ?? query;
-  const q = await tq<GetAllServerRelationsQueryType>(`SELECT * FROM task_relation WHERE id=$1;`, [
-    id,
-  ]);
+  const q = await tq<BasicRelationType>(`SELECT * FROM task_relation WHERE id=$1;`, [id]);
   if (q.rows.length == 0) {
     throw new NotFoundError('No relation found');
   }
   return q.rows[0];
+};
+
+export const getRelationWithPermissionsById = async (
+  user_id: string,
+  id: string,
+  txQuery?: typeof query
+) => {
+  const tq = txQuery ?? query;
+  try {
+    const q = await tq<GetAllServerRelationsQueryType>(
+      `
+      SELECT 
+        r.*, 
+        me.permission AS my_permission, 
+        users.id as shared_with_id,
+        users.name as shared_with_name,
+        users.email as shared_with_email
+      FROM task_relation r
+
+      LEFT JOIN task_permissions me 
+        ON me.task_relation_id = r.id 
+        AND me.user_id = $1
+
+      LEFT JOIN task_permissions other 
+        ON other.task_relation_id = r.id 
+        AND other.user_id != $1
+
+      LEFT JOIN users ON users.id=other.user_id
+      WHERE me.user_id IS NOT NULL AND r.id = $2;
+
+      `,
+
+      [user_id, id]
+    );
+    if (q.rowCount === 0) throw new NotFoundError('Relation not found');
+    return GetAllServerRelationsTransform.parse(q.rows[0]);
+  } catch (error) {
+    if (error instanceof pgError) {
+      console.error('Database error:', error);
+      throw new DatabaseError('Failed to fetch relations', error);
+    }
+    console.error('Error fetching relations:', error);
+    throw error;
+  }
 };

@@ -1,7 +1,7 @@
 import { permissionEnum, BasicRelationSchema } from '@groceries/shared_types';
 import { z } from 'zod';
 
-export const getRelationByIdQueryResponseSchema = z.object({
+export const getRelationWithTasksByIdQueryResponseSchema = z.object({
   relation_id: z.string().uuid(),
   relation_name: z.string(),
   relation_created_at: z.date(),
@@ -16,7 +16,9 @@ export const getRelationByIdQueryResponseSchema = z.object({
   task_last_modified: z.date(),
   task_order_idx: z.number(),
 });
-export type GetRelationByIdQueryResponseType = z.infer<typeof getRelationByIdQueryResponseSchema>;
+export type GetRelationWithTasksByIdQueryResponseType = z.infer<
+  typeof getRelationWithTasksByIdQueryResponseSchema
+>;
 
 export const GetAllServerRelationsQuerySchema = BasicRelationSchema.omit({
   created_at: true,
@@ -57,3 +59,4 @@ export const GetAllServerRelationsTransform = GetAllServerRelationsQuerySchema.t
           shared_with: null,
         }
 );
+export type BasicRelationType = z.infer<typeof BasicRelationSchema>;

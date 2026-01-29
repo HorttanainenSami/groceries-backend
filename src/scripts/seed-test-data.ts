@@ -117,33 +117,24 @@ export async function seedTestData() {
   await seedTestRelationsAndTasks();
 }
 export async function seedUsers() {
-  console.log('🌱 Setting up test database...\n');
-
   try {
     // Create test users
     for (const user of TEST_USERS) {
       const hashedPassword = await bcrypt.hash(user.password, 10);
 
       try {
-        const result = await query(
+        await query(
           'INSERT INTO Users (email, password, name) VALUES ($1, $2, $3) RETURNING id, email, name',
           [user.email, hashedPassword, user.name]
         );
-        console.log(`✓ Created user: ${result.rows[0].email} (ID: ${result.rows[0].id})`);
       } catch (error: any) {
         if (error.code === '23505') {
           // Unique constraint violation - user already exists
-          console.log(`→ User already exists: ${user.email}`);
         } else {
           throw error;
         }
       }
     }
-
-    console.log('\n✅ Test data seeded successfully!');
-    console.log('\nTest credentials for Maestro:');
-    console.log('  Email: test@example.com');
-    console.log('  Password: password123\n');
   } catch (error) {
     console.error('❌ Error seeding test data:', error);
     throw Error();

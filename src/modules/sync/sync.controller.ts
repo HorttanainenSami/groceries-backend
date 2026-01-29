@@ -1,13 +1,19 @@
 import { NextFunction, Request, Response } from 'express';
 
-import { PendingOperationSchema, TaskType } from '@groceries/shared_types';
+import {
+  FailedOperationType,
+  PendingOperationSchema,
+  SyncBatchResponse,
+  TaskType,
+} from '@groceries/shared_types';
 import { decodeTokenFromRequest } from '../../resources/utils';
 import {
   getUserPermission,
-  getRelationById,
+  getRelationWithPermissionsById,
   removeRelation,
   editRelationsName,
   getCollaborators,
+  getRelationById,
 } from '../relations/relations.service';
 import {
   AuthorizationError,
@@ -26,7 +32,7 @@ import { notifyCollaborators } from '../..';
 
 type CheckPermissionAndRelationExistsResponse =
   | { conflict: false }
-  | { conflict: true; response: { id: string; reason: 'relation deleted' | 'unauthorized' } };
+  | { conflict: true; response: FailedOperationType };
 export const checkPermissionAndRelationExists = async (
   op_id: string,
   user_id: string,
@@ -38,10 +44,13 @@ export const checkPermissionAndRelationExists = async (
     return { conflict: false };
   } catch (e) {
     if (e instanceof AuthorizationError) {
-      return { conflict: true, response: { id: op_id, reason: 'unauthorized' } };
+      return { conflict: true, response: { id: op_id, type: 'simple', reason: 'Unauthorized' } };
     }
     if (e instanceof NotFoundError) {
-      return { conflict: true, response: { id: op_id, reason: 'relation deleted' } };
+      return {
+        conflict: true,
+        response: { id: op_id, type: 'simple', reason: 'Relation deleted' },
+      };
     }
     throw e;
   }
@@ -52,7 +61,7 @@ type GetTaskAndLasModified =
       conflict: false;
       task: TaskType;
     }
-  | { conflict: true; response: { id: string; reason: string } };
+  | { conflict: true; response: FailedOperationType };
 
 const checkIfTaskExists = async (
   op_id: string,
@@ -65,7 +74,7 @@ const checkIfTaskExists = async (
     return { conflict: false, task: serverTask };
   } catch (e) {
     if (e instanceof NotFoundError) {
-      return { conflict: true, response: { id: op_id, reason: 'task deleted' } };
+      return { conflict: true, response: { id: op_id, type: 'simple', reason: 'task deleted' } };
     }
     throw e;
   }
@@ -80,8 +89,7 @@ const handleTaskModificationCurrying =
     last_modified: string,
     callback: (serverTask: TaskType) => Promise<void>
   ): Promise<
-    | { success: true; result: { id: string } }
-    | { success: false; result: { id: string; reason: string } }
+    { success: true; result: { id: string } } | { success: false; result: FailedOperationType }
   > => {
     const conflict = await checkPermissionAndRelationExists(op_id, user_id, task_relation_id);
     if (conflict.conflict) {
@@ -105,23 +113,30 @@ const handleTaskModificationCurrying =
       console.log('llw failed');
 
       // Server version is more recent - discard
-      return { success: false, result: { id: op_id, reason: 'Server version is more recent' } };
+      return {
+        success: false,
+        result: {
+          id: op_id,
+          type: 'task',
+          serverTask: response.task,
+          reason: 'Server version is more recent',
+        },
+      };
     }
   };
 
-type SyncResponse = {
-  success: { id: string }[];
-  failed: { id: string; reason: string }[];
-};
-
-export const syncBatch = async (req: Request, res: Response<SyncResponse>, next: NextFunction) => {
+export const syncBatch = async (
+  req: Request,
+  res: Response<SyncBatchResponse>,
+  next: NextFunction
+) => {
   try {
     console.log(JSON.stringify(req.body, null, 2));
     const parsedBody = PendingOperationSchema.array().parse(req.body);
-    const { id } = decodeTokenFromRequest(req);
-    const success = [];
-    const failed = [];
-    const handleTaskModification = handleTaskModificationCurrying(id);
+    const { id: user_id } = decodeTokenFromRequest(req);
+    const success: { id: string }[] = [];
+    const failed: FailedOperationType[] = [];
+    const handleTaskModification = handleTaskModificationCurrying(user_id);
     console.log(JSON.stringify(parsedBody, null, 2));
 
     //handle sync per operation
@@ -133,21 +148,25 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
               data: { task_relations_id },
             } = op;
             try {
-              const conflict = await checkPermissionAndRelationExists(op.id, id, task_relations_id);
+              const conflict = await checkPermissionAndRelationExists(
+                op.id,
+                user_id,
+                task_relations_id
+              );
               if (conflict.conflict) {
                 failed.push(conflict.response);
                 break;
               }
               const stored_task = await createTaskForRelation(op.data);
               success.push({ id: op.id });
-              notifyCollaborators(task_relations_id, id, 'task:create', {
+              notifyCollaborators(task_relations_id, user_id, 'task:create', {
                 data: stored_task,
               });
             } catch (e) {
               if (e instanceof AppDatabaseError && e.databaseError.code === '23505') {
-                failed.push({ id: op.id, reason: 'UUid collision' });
+                failed.push({ id: op.id, type: 'simple', reason: 'UUid collision' });
               } else {
-                failed.push({ id: op.id, reason: 'Database error' });
+                failed.push({ id: op.id, type: 'simple', reason: 'Database error' });
                 console.error('Error creating task:', e);
               }
             }
@@ -174,14 +193,16 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
 
             if (result.success) {
               if (response) {
-                notifyCollaborators(task_relations_id, id, 'task:edit', { edited_task: response });
+                notifyCollaborators(task_relations_id, user_id, 'task:edit', {
+                  edited_task: response,
+                });
               }
               success.push(result.result);
             } else {
               failed.push(result.result);
             }
           } catch (e) {
-            failed.push({ id: op.id, reason: 'Database error' });
+            failed.push({ id: op.id, type: 'simple', reason: 'Database error' });
             console.error('Error editing task:', e);
           }
           break;
@@ -208,14 +229,16 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
 
             if (result.success) {
               if (response) {
-                notifyCollaborators(task_relations_id, id, 'task:edit', { edited_task: response });
+                notifyCollaborators(task_relations_id, user_id, 'task:edit', {
+                  edited_task: response,
+                });
               }
               success.push(result.result);
             } else {
               failed.push(result.result);
             }
           } catch (e) {
-            failed.push({ id: op.id, reason: 'Database error' });
+            failed.push({ id: op.id, type: 'simple', reason: 'Database error' });
             console.error('Error toggling task:', e);
           }
           break;
@@ -238,23 +261,18 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
             );
             if (result.success) {
               if (response) {
-                notifyCollaborators(task_relations_id, id, 'task:remove', {
+                notifyCollaborators(task_relations_id, user_id, 'task:remove', {
                   remove_tasks: [response],
                 });
               }
               success.push(result.result);
             } else if (!result.success && result.result.reason === 'task deleted') {
               success.push({ id: result.result.id });
-            } else if (!result.success && result.result.reason === 'unauthorized') {
-              failed.push({ id: op.id, reason: 'unauthorized' });
-            } else if (!result.success && result.result.reason === 'relation deleted') {
-              failed.push({ id: op.id, reason: 'Relation deleted' });
             } else {
-              // Server modified after delete was queued
-              failed.push({ id: op.id, reason: 'Server version is more recent' });
+              failed.push(result.result);
             }
           } catch (e) {
-            failed.push({ id: op.id, reason: 'Database error' });
+            failed.push({ id: op.id, type: 'simple', reason: 'Database error' });
             console.error('Error deleting task:', e);
           }
           break;
@@ -268,7 +286,11 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
           }
 
           const task_relations_id = tasks[0].task_relations_id;
-          const conflict = await checkPermissionAndRelationExists(op.id, id, task_relations_id);
+          const conflict = await checkPermissionAndRelationExists(
+            op.id,
+            user_id,
+            task_relations_id
+          );
           if (conflict.conflict) {
             failed.push(conflict.response);
             break;
@@ -291,12 +313,12 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
             // Update order_idx for valid tasks
             const response = await Promise.all(validTasks.map((task) => reorderTask(task)));
 
-            notifyCollaborators(task_relations_id, id, 'task:reorder', {
+            notifyCollaborators(task_relations_id, user_id, 'task:reorder', {
               reordered_tasks: response,
             });
             success.push({ id: op.id });
           } catch (e) {
-            failed.push({ id: op.id, reason: 'Database error' });
+            failed.push({ id: op.id, type: 'simple', reason: 'Database error' });
             console.error('Error reordering tasks:', e);
           }
           break;
@@ -307,36 +329,43 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
             data: { id: relation_id },
           } = op;
           try {
-            const { last_modified } = await getRelationById(relation_id); // throws NotFoundError
-            await getUserPermission({ id }, { id: relation_id }); //throws if no authorization
+            const conflict = await checkPermissionAndRelationExists(op.id, user_id, relation_id);
+            if (conflict.conflict) {
+              if (conflict.response.reason === 'Relation deleted') {
+                success.push({ id: op.id });
+              } else {
+                failed.push(conflict.response);
+              }
+              break;
+            }
+            const serverRelation = await getRelationWithPermissionsById(user_id, relation_id); // throws NotFoundError
+
             console.log('pemission success');
-            const collaborators = await getCollaborators({ id }, { id: relation_id });
+            const collaborators = await getCollaborators({ id: user_id }, { id: relation_id });
             console.log(collaborators);
             // LLW check
-            if (new Date(op.data.last_modified) < new Date(last_modified)) {
-              failed.push({ id: op.id, reason: 'Server relation is more recent' });
+            if (new Date(op.data.last_modified) < new Date(serverRelation.last_modified)) {
+              failed.push({
+                id: op.id,
+                type: 'relation',
+                reason: 'Server version is more recent',
+                serverRelations: serverRelation,
+              });
             } else {
               await removeRelation({ id: relation_id });
               success.push({ id: op.id });
-              console.log('notify, current user: ', id);
+              console.log('notify, current user: ', user_id);
               notifyCollaborators(
                 relation_id,
-                id,
+                user_id,
                 'relations:delete',
                 [[true, relation_id]],
                 collaborators
               );
             }
           } catch (e) {
-            if (e instanceof NotFoundError) {
-              // Already deleted - success
-              success.push({ id: op.id });
-            } else if (e instanceof AuthorizationError) {
-              failed.push({ id: op.id, reason: 'unauthorized' });
-            } else {
-              failed.push({ id: op.id, reason: 'Database error' });
-              console.error('Error deleting relation:', e);
-            }
+            failed.push({ id: op.id, type: 'simple', reason: 'Database error' });
+            console.error('Error deleting relation:', e);
           }
           break;
         }
@@ -346,33 +375,42 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
             data: { id: relation_id, last_modified, name },
           } = op;
 
-          const conflict = await checkPermissionAndRelationExists(op.id, id, relation_id);
+          const conflict = await checkPermissionAndRelationExists(op.id, user_id, relation_id);
           if (conflict.conflict) {
             failed.push(conflict.response);
             break;
           }
 
           try {
-            const serverRelation = await getRelationById(relation_id); //throws NotFoundError
+            const serverRelation = await getRelationWithPermissionsById(user_id, relation_id); //throws NotFoundError
 
             // LWW
             if (new Date(last_modified) > new Date(serverRelation.last_modified)) {
               const response = await editRelationsName({
                 relationId: relation_id,
                 newName: name,
-                userId: id,
+                userId: user_id,
                 last_modified,
               });
               success.push({ id: op.id });
-              notifyCollaborators(relation_id, id, 'relations:change_name', response);
+              notifyCollaborators(relation_id, user_id, 'relations:change_name', response);
             } else {
-              failed.push({ id: op.id, reason: 'Server version is more recent' });
+              failed.push({
+                id: op.id,
+                type: 'relation',
+                serverRelations: serverRelation,
+                reason: 'Server version is more recent',
+              });
             }
           } catch (e) {
             if (e instanceof NotFoundError) {
-              failed.push({ id: op.id, reason: 'Relation already deleted from server' });
+              failed.push({
+                id: op.id,
+                type: 'simple',
+                reason: 'Relation already deleted from server',
+              });
             } else {
-              failed.push({ id: op.id, reason: 'Database error' });
+              failed.push({ id: op.id, type: 'simple', reason: 'Database error' });
               console.error('Error editing relation:', e);
             }
           }
@@ -380,7 +418,7 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
         }
 
         case 'relation-reorder': {
-          failed.push({ id: op.id, reason: 'Not yet implemented' });
+          failed.push({ id: op.id, type: 'simple', reason: 'Not yet implemented' });
           break;
         }
         default: {
@@ -388,6 +426,7 @@ export const syncBatch = async (req: Request, res: Response<SyncResponse>, next:
           const exhaustiveCheck: never = op;
           failed.push({
             id: (exhaustiveCheck as any).id,
+            type: 'simple',
             reason: `Operation type not supported!`,
           });
           break;
