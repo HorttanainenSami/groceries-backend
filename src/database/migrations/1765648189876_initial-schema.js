@@ -6,6 +6,7 @@ exports.up = (pgm) => {
     id: {
       type: 'UUID',
       primaryKey: true,
+      unique: true,
       default: pgm.func('uuid_generate_v4()'),
     },
     email: {
@@ -29,6 +30,7 @@ exports.up = (pgm) => {
       type: 'UUID',
       primaryKey: true,
       default: pgm.func('uuid_generate_v4()'),
+      unique: true,
     },
     name: {
       type: 'VARCHAR',
@@ -50,6 +52,7 @@ exports.up = (pgm) => {
     id: {
       type: 'UUID',
       primaryKey: true,
+      unique: true,
       default: pgm.func('uuid_generate_v4()'),
     },
     task: {
@@ -79,6 +82,7 @@ exports.up = (pgm) => {
     id: {
       type: 'UUID',
       primaryKey: true,
+      unique: true,
       default: pgm.func('uuid_generate_v4()'),
     },
     task_relation_id: {
