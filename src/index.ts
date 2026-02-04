@@ -67,7 +67,7 @@ export const notifyCollaborators = async <E extends keyof ServerToClientEvents>(
   });
 };
 
-const port = 3003;
+const port = process.env.PORT || 3003;
 if (process.env.NODE_ENV !== 'test') {
   server.listen(port, () => {
     return console.log(`Express is listening at http://localhost:${port}`);
