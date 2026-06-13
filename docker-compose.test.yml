@@ -1,11 +1,31 @@
-version: '3.8'
 services:
-  test_db:
-    image: postgres:17
-    container_name: postgres-groceries_test
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend-container-test
     ports:
-      - 127.0.0.1:5434:5432
+      - 8000:3003
     env_file:
-      - .env.test
-    tmpfs:
-      - /var/lib/postgresql/data
+      - .env.dev
+
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - groceries-app
+  db:
+    image: postgres:17
+    container_name: postgres-container-test
+    env_file:
+      - .env.dev
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - groceries-app
+
+networks:
+  groceries-app:
+volumes:
+  postgres-data:

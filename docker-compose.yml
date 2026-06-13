@@ -1,30 +1,22 @@
-version: '3.8'
 services:
-  #   backend:
-  #     build:
-  #       context: .
-  #       dockerfile: Dockerfile
-  #     container_name: backend-container
-  #     ports:
-  #       - 8000:3003
-  #     environment:
-  #       DATABASE_HOST: ${DATABASE_HOST}
-  #       DATABASE_PORT: ${DATABASE_PORT}
-  #       DATABASE_USER: ${DATABASE_USER}
-  #       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-  #       DATABASE_NAME: ${DATABASE_NAME}
-  #       SECRET: ${SECRET}
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: groceries-backend-container
+    ports:
+      - 8000:3003
+    env_file:
+      - .env.dev
 
-  #     depends_on:
-  #       - db
-  #     restart: unless-stopped
-  #     networks:
-  #       - groceries-app
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - groceries-app
   db:
     image: postgres:17
-    container_name: postgres-container
-    ports:
-      - 127.0.0.1:5433:5432
+    container_name: groceries-postgres-container
     env_file:
       - .env.dev
     volumes:
