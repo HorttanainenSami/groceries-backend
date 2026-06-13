@@ -29,8 +29,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/horttnainensami/groceries-backend:latest
-            ghcr.io/horttnainensami/groceries-backend:${{ github.sha }}
+            ghcr.io/horttanainensami/groceries-backend:latest
+            ghcr.io/horttanainensami/groceries-backend:${{ github.sha }}
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
