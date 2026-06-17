@@ -1,14 +1,11 @@
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/horttanainensami/groceries-backend:latest
     container_name: groceries-backend-container
     ports:
       - 8000:3003
     env_file:
       - .env.dev
-
     depends_on:
       - db
     restart: unless-stopped
