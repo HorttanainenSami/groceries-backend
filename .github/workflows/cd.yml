@@ -40,7 +40,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
           script: |
-            bash ~/groceries-backend/scripts/snapshot.sh ${{ github.sha }}
+            bash ~/groceries-backend/scripts/snapshot.sh
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
@@ -55,4 +55,4 @@ jobs:
             docker compose pull
             docker compose run --rm backend npm run migrate:up
             docker compose up -d
-            echo ${{ github.sha }} > ~/groceries-backend/backups/current-version.txt
+            echo ${{ github.sha }} > ~/groceries-backend/current-version.txt
