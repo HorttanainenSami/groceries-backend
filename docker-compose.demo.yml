@@ -1,0 +1,28 @@
+services:
+  backend-demo:
+    image: ghcr.io/horttanainensami/groceries-backend:latest
+    container_name: groceries-demo-backend-container
+    ports:
+      - 127.0.0.1:3007:3003
+    env_file:
+      - .env.demo
+    depends_on:
+      - db-demo
+    restart: unless-stopped
+    networks:
+      - groceries-demo-app
+  db-demo:
+    image: postgres:17
+    container_name: groceries-demo-postgres-container
+    env_file:
+      - .env.demo
+    volumes:
+      - postgres-demo-data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - groceries-demo-app
+
+networks:
+  groceries-demo-app:
+volumes:
+  postgres-demo-data:
