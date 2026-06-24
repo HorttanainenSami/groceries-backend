@@ -32,6 +32,16 @@ jobs:
             ghcr.io/horttanainensami/groceries-backend:latest
             ghcr.io/horttanainensami/groceries-backend:${{ github.sha }}
 
+      - name: Take snapshot of the database
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          script: |
+            bash ~/groceries-backend/scripts/snapshot.sh ${{ github.sha }}
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
         with:
@@ -45,3 +55,4 @@ jobs:
             docker compose pull
             docker compose run --rm backend npm run migrate:up
             docker compose up -d
+            echo ${{ github.sha }} > ~/groceries-backend/backups/current-version.txt
