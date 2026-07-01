@@ -5,7 +5,7 @@ services:
     ports:
       - 127.0.0.1:3003:3003
     env_file:
-      - .env.dev
+      - .env.prod
     depends_on:
       - db
     restart: unless-stopped
@@ -15,7 +15,7 @@ services:
     image: postgres:17
     container_name: groceries-postgres-container
     env_file:
-      - .env.dev
+      - .env.prod
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: always
