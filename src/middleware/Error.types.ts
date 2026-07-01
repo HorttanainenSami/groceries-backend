@@ -54,6 +54,11 @@ export class JsonWebTokenError extends ApplicationError {
     super(message, 401, 'JsonWebTokenError');
   }
 }
+export class ForbiddenError extends ApplicationError {
+  constructor(message: string) {
+    super(message, 403, 'ForbiddenError');
+  }
+}
 export class CastError extends ApplicationError {
   constructor(message: string) {
     super(message, 400, 'CastError');

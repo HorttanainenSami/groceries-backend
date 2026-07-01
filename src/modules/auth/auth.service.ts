@@ -38,7 +38,45 @@ const getUserByEmail = async (user: LoginRequestBodyType): Promise<UserType> => 
   }
 };
 
+const saveRefreshToken = async (token: string, userId: string, expiresAt: Date): Promise<void> => {
+  try {
+    await query('INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES ($1, $2, $3);', [
+      token,
+      userId,
+      expiresAt,
+    ]);
+  } catch (error) {
+    if (error instanceof pgError) throw new DatabaseError('Failed to save refresh token', error);
+    throw error;
+  }
+};
+// revokes token and cleans all expired tokens
+const revokeRefreshToken = async (token: string): Promise<void> => {
+  try {
+    await query('DELETE FROM refresh_tokens WHERE token=$1 OR expires_at < NOW();', [token]);
+  } catch (error) {
+    if (error instanceof pgError) throw new DatabaseError('Failed to revoke refresh token', error);
+    throw error;
+  }
+};
+
+const isRefreshTokenValid = async (token: string): Promise<boolean> => {
+  try {
+    const q = await query('SELECT 1 FROM refresh_tokens WHERE token=$1 AND expires_at > NOW();', [
+      token,
+    ]);
+    return q.rows.length > 0;
+  } catch (error) {
+    if (error instanceof pgError)
+      throw new DatabaseError('Failed to validate refresh token', error);
+    throw error;
+  }
+};
+
 export default {
   createUser,
   getUserByEmail,
+  saveRefreshToken,
+  revokeRefreshToken,
+  isRefreshTokenValid,
 };

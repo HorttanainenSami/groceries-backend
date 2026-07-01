@@ -1,9 +1,9 @@
-import { register, login } from '../../../../modules/auth/auth.controller';
+import { register, login, refreshToken } from '../../../../modules/auth/auth.controller';
 import userApi from '../../../../modules/auth/auth.service';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { secret as _secret } from '../../../../resources/utils';
-import { AuthenticationError } from '../../../../middleware/Error.types';
+import { AuthenticationError, ForbiddenError } from '../../../../middleware/Error.types';
 import { Request, Response, NextFunction } from 'express';
 
 jest.mock('../../../../modules/auth/auth.service');
@@ -77,23 +77,29 @@ describe('Auth Controller', () => {
   describe('login', () => {
     it('should return a token and user details for valid credentials', async () => {
       const mockUser = { id: 1, email: 'test@example.com', password: 'hashed-password' };
-      const mockToken = 'test-token';
 
       req.body = { email: 'test@example.com', password: 'password123' };
 
       (userApi.getUserByEmail as jest.Mock).mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      (jwt.sign as jest.Mock).mockReturnValue(mockToken);
+      (userApi.saveRefreshToken as jest.Mock).mockResolvedValue(undefined);
+      (jwt.sign as jest.Mock)
+        .mockReturnValueOnce('mock-refresh-token')
+        .mockReturnValueOnce('mock-access-token');
 
       await login(req as Request, res as Response, next as NextFunction);
 
       expect(userApi.getUserByEmail).toHaveBeenCalledWith(req.body);
       expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed-password');
       expect(jwt.sign).toHaveBeenCalledWith({ email: 'test@example.com', id: 1 }, 'test-secret', {
-        expiresIn: '7d',
+        expiresIn: '30d',
+      });
+      expect(jwt.sign).toHaveBeenCalledWith({ email: 'test@example.com', id: 1 }, 'test-secret', {
+        expiresIn: '1h',
       });
       expect(res.send).toHaveBeenCalledWith({
-        token: mockToken,
+        refreshToken: 'mock-refresh-token',
+        accessToken: 'mock-access-token',
         email: 'test@example.com',
         id: 1,
       });
@@ -150,6 +156,97 @@ describe('Auth Controller', () => {
       await login(req as Request, res as Response, next as NextFunction);
 
       expect(next).toHaveBeenCalledWith(mockError);
+    });
+  });
+
+  describe('refreshToken', () => {
+    it('should return new tokens for a valid refresh token', async () => {
+      const mockDecoded = { email: 'test@example.com', id: '123' };
+      const mockNewTokens = { accessToken: 'new-access', refreshToken: 'new-refresh' };
+
+      req.body = { refreshToken: 'valid-refresh-token' };
+
+      (jwt.verify as jest.Mock).mockReturnValue(mockDecoded);
+      (userApi.isRefreshTokenValid as jest.Mock).mockResolvedValue(true);
+      (userApi.revokeRefreshToken as jest.Mock).mockResolvedValue(undefined);
+      (userApi.saveRefreshToken as jest.Mock).mockResolvedValue(undefined);
+      (jwt.sign as jest.Mock)
+        .mockReturnValueOnce(mockNewTokens.refreshToken)
+        .mockReturnValueOnce(mockNewTokens.accessToken);
+
+      await refreshToken(req as Request, res as Response, next as NextFunction);
+
+      expect(userApi.revokeRefreshToken).toHaveBeenCalledWith('valid-refresh-token');
+      expect(userApi.saveRefreshToken).toHaveBeenCalledWith(
+        mockNewTokens.refreshToken,
+        mockDecoded.id,
+        expect.any(Date)
+      );
+      expect(res.send).toHaveBeenCalledWith({
+        refreshToken: mockNewTokens.refreshToken,
+        accessToken: mockNewTokens.accessToken,
+        email: mockDecoded.email,
+        id: mockDecoded.id,
+      });
+    });
+
+    it('should call next with AuthenticationError if no refresh token provided', async () => {
+      req.body = {};
+
+      await refreshToken(req as Request, res as Response, next as NextFunction);
+
+      expect(next).toHaveBeenCalledWith(expect.any(AuthenticationError));
+    });
+
+    it('should call next with ForbiddenError if token is not in DB', async () => {
+      req.body = { refreshToken: 'revoked-token' };
+
+      (jwt.verify as jest.Mock).mockReturnValue({ email: 'test@example.com', id: '123' });
+      (userApi.isRefreshTokenValid as jest.Mock).mockResolvedValue(false);
+
+      await refreshToken(req as Request, res as Response, next as NextFunction);
+
+      expect(next).toHaveBeenCalledWith(expect.any(ForbiddenError));
+    });
+
+    it('should reject old refresh token after rotation', async () => {
+      const oldToken = 'old-refresh-token';
+
+      (jwt.verify as jest.Mock).mockReturnValue({ email: 'test@example.com', id: '123' });
+      // old token was already revoked after previous refresh
+      (userApi.isRefreshTokenValid as jest.Mock).mockResolvedValue(false);
+
+      req.body = { refreshToken: oldToken };
+      await refreshToken(req as Request, res as Response, next as NextFunction);
+
+      expect(userApi.revokeRefreshToken).not.toHaveBeenCalled();
+      expect(userApi.saveRefreshToken).not.toHaveBeenCalled();
+      expect(res.send).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith(expect.any(ForbiddenError));
+    });
+
+    it('should call next with ForbiddenError if JWT is invalid', async () => {
+      req.body = { refreshToken: 'invalid-token' };
+
+      (jwt.verify as jest.Mock).mockImplementation(() => {
+        throw new jwt.JsonWebTokenError('invalid token');
+      });
+
+      await refreshToken(req as Request, res as Response, next as NextFunction);
+
+      expect(next).toHaveBeenCalledWith(expect.any(ForbiddenError));
+    });
+
+    it('should call next with ForbiddenError if JWT is expired', async () => {
+      req.body = { refreshToken: 'expired-token' };
+
+      (jwt.verify as jest.Mock).mockImplementation(() => {
+        throw new jwt.TokenExpiredError('jwt expired', new Date());
+      });
+
+      await refreshToken(req as Request, res as Response, next as NextFunction);
+
+      expect(next).toHaveBeenCalledWith(expect.any(ForbiddenError));
     });
   });
 });

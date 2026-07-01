@@ -1,5 +1,5 @@
 services:
-  backend:
+  backend-test:
     build:
       context: .
       dockerfile: Dockerfile
@@ -7,25 +7,27 @@ services:
     ports:
       - 8000:3003
     env_file:
-      - .env.dev
+      - .env.test
 
     depends_on:
-      - db
+      - db-test
     restart: unless-stopped
     networks:
-      - groceries-app
-  db:
+      - groceries-app-test
+  db-test:
     image: postgres:17
     container_name: postgres-container-test
     env_file:
-      - .env.dev
+      - .env.test
+    ports:
+      - 5434:5432
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data-test:/var/lib/postgresql/data
     restart: always
     networks:
-      - groceries-app
+      - groceries-app-test
 
 networks:
-  groceries-app:
+  groceries-app-test:
 volumes:
-  postgres-data:
+  postgres-data-test:

@@ -62,14 +62,14 @@ beforeEach(async () => {
 describe('Task operations', () => {
   describe('Create', () => {
     it('succeeds when relation exists and user authorized', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const { id: relationId } = TEST_RELATIONS[0]; // relation in database with owner permissions
       const operation = createTaskOperation(operationId, taskId, relationId, 'New Task');
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -87,7 +87,7 @@ describe('Task operations', () => {
     });
 
     it('fails when relation is deleted/doesnt exist', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
 
       const operation = createTaskOperation(
@@ -99,7 +99,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -111,14 +111,14 @@ describe('Task operations', () => {
     });
 
     it('fails when user is unauthorized', async () => {
-      const { token, id } = user2;
+      const { accessToken, id } = user2;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const { id: relationId } = TEST_RELATIONS[1]; // relation in database with no permission to user2
       const operation = createTaskOperation(operationId, taskId, relationId, 'New Task');
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -130,7 +130,7 @@ describe('Task operations', () => {
     });
 
     it('fails on UUID collision', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
 
       const operation = createTaskOperation(
@@ -148,7 +148,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation, operation2]);
 
       expect(response.status).toBe(200);
@@ -162,7 +162,7 @@ describe('Task operations', () => {
   });
   describe('Edit', () => {
     it('succeeds when client is more recent (LWW)', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -177,7 +177,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -198,7 +198,7 @@ describe('Task operations', () => {
     });
 
     it('fails when server is more recent (LWW) and returns the resolved task ', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
       const task = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
@@ -213,7 +213,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -232,7 +232,7 @@ describe('Task operations', () => {
     });
 
     it('fails when task is deleted', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const futureTime = new Date(Date.now() + 10000).toISOString();
 
@@ -246,7 +246,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -258,7 +258,7 @@ describe('Task operations', () => {
     });
 
     it('fails when user is unauthorized', async () => {
-      const { token, id } = user2;
+      const { accessToken, id } = user2;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[2]; // Screws task in Hardware Store (user2 has no access)
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -273,7 +273,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -286,7 +286,7 @@ describe('Task operations', () => {
   });
   describe('Toggle', () => {
     it('succeeds when client is more recent (LWW)', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -302,7 +302,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -324,7 +324,7 @@ describe('Task operations', () => {
     });
 
     it('fails when server is more recent (LWW) and returns resolved task', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
       const task = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
@@ -341,7 +341,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -360,7 +360,7 @@ describe('Task operations', () => {
     });
 
     it('fails when task is deleted', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const futureTime = new Date(Date.now() + 10000).toISOString();
 
@@ -375,7 +375,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -386,7 +386,7 @@ describe('Task operations', () => {
       expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
     it('fails when user has no permission', async () => {
-      const { token, id } = user2;
+      const { accessToken, id } = user2;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
 
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -402,7 +402,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
       expect(response.status).toBe(200);
       expect(response.body.success).toHaveLength(0);
@@ -414,7 +414,7 @@ describe('Task operations', () => {
   });
   describe('Delete', () => {
     it('succeeds when client is more recent (LWW)', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -431,7 +431,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -451,7 +451,7 @@ describe('Task operations', () => {
     });
 
     it('fails when server is more recent (LWW) and returns resolved task', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
       const task = await query('SELECT * FROM task WHERE id = $1', [existingTask.id]);
@@ -466,7 +466,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -484,7 +484,7 @@ describe('Task operations', () => {
       expect(taskResult.rows).toHaveLength(1);
     });
     it('fails when relation is deleted', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const futureTime = new Date(Date.now() + 10000).toISOString();
 
@@ -497,7 +497,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
       expect(response.status).toBe(200);
       expect(response.body.success).toHaveLength(0);
@@ -507,7 +507,7 @@ describe('Task operations', () => {
       expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
     it('succeeds when task is already deleted', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const futureTime = new Date(Date.now() + 10000).toISOString();
 
@@ -520,7 +520,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -530,7 +530,7 @@ describe('Task operations', () => {
       expect(mockNotifyCollaborators).not.toHaveBeenCalled();
     });
     it('fails when user has no permission', async () => {
-      const { token, id } = user2;
+      const { accessToken, id } = user2;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
 
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -544,7 +544,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
       expect(response.status).toBe(200);
       expect(response.body.success).toHaveLength(0);
@@ -556,7 +556,7 @@ describe('Task operations', () => {
   });
   describe('Reorder', () => {
     it('succeeds for tasks where client is more recent', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const task1 = TEST_TASKS[0];
       const task2 = TEST_TASKS[1];
@@ -579,7 +579,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -598,7 +598,7 @@ describe('Task operations', () => {
     });
 
     it('skips tasks where server is more recent', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const task1 = TEST_TASKS[0];
       const task2 = TEST_TASKS[1];
@@ -623,7 +623,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -640,7 +640,7 @@ describe('Task operations', () => {
     });
 
     it('skips deleted tasks', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingTask = TEST_TASKS[0];
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -662,7 +662,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -680,7 +680,7 @@ describe('Task operations', () => {
     });
 
     it('fails when user is unauthorized', async () => {
-      const { token, id } = user2;
+      const { accessToken, id } = user2;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const task = TEST_TASKS[2]; // user2 has no access
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -696,7 +696,7 @@ describe('Task operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -712,7 +712,7 @@ describe('Task operations', () => {
 describe('Relation operations', () => {
   describe('Edit', () => {
     it('succeeds when client is more recent (LWW)', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingRelation = TEST_RELATIONS[0];
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -728,7 +728,7 @@ describe('Relation operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -745,7 +745,7 @@ describe('Relation operations', () => {
     });
 
     it('fails when server is more recent (LWW) and returns resolved relation', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingRelation = TEST_RELATIONS[0];
       const relation = await getRelationWithPermissionsById(user1.id, existingRelation.id);
@@ -762,7 +762,7 @@ describe('Relation operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -782,7 +782,7 @@ describe('Relation operations', () => {
     });
 
     it('fails when relation is deleted', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const futureTime = new Date(Date.now() + 10000).toISOString();
       const createdAt = new Date().toISOString();
@@ -797,7 +797,7 @@ describe('Relation operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -808,7 +808,7 @@ describe('Relation operations', () => {
     });
 
     it('fails when user is unauthorized', async () => {
-      const { token, id } = user2;
+      const { accessToken, id } = user2;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingRelation = TEST_RELATIONS[1]; // Hardware Store (user2 has no access)
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -824,7 +824,7 @@ describe('Relation operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -837,7 +837,7 @@ describe('Relation operations', () => {
 
   describe('Delete', () => {
     it('succeeds when client is more recent (LLW)', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingRelation = TEST_RELATIONS[0];
       const stored_relation = await getRelationWithPermissionsById(user1.id, existingRelation.id);
@@ -855,7 +855,7 @@ describe('Relation operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
       expect(response.status).toBe(200);
       expect(response.body.success).toHaveLength(1);
@@ -869,7 +869,7 @@ describe('Relation operations', () => {
       expect(relationResult.rows).toHaveLength(0);
     });
     it('fails when server is more recent (LLW) and returns resolved relation', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingRelation = TEST_RELATIONS[0];
       const stored_relation = await getRelationWithPermissionsById(user1.id, existingRelation.id);
@@ -887,7 +887,7 @@ describe('Relation operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -907,7 +907,7 @@ describe('Relation operations', () => {
     });
 
     it('succeeds when relation already deleted', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const futureTime = new Date(Date.now() + 10000).toISOString();
 
@@ -921,7 +921,7 @@ describe('Relation operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -931,7 +931,7 @@ describe('Relation operations', () => {
     });
 
     it('fails when user is unauthorized', async () => {
-      const { token, id } = user2;
+      const { accessToken, id } = user2;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const existingRelation = TEST_RELATIONS[1]; // Hardware Store (user2 has no access)
       const futureTime = new Date(Date.now() + 10000).toISOString();
@@ -947,7 +947,7 @@ describe('Relation operations', () => {
 
       const response = await request(app)
         .post('/sync/batch')
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .send([operation]);
 
       expect(response.status).toBe(200);
@@ -961,7 +961,7 @@ describe('Relation operations', () => {
 
 describe('Batch operations', () => {
   it('handles mixed batch with 3 successful and 2 failed operations', async () => {
-    const { token, id } = user1;
+    const { accessToken, id } = user1;
     (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
     const futureTime = new Date(Date.now() + 10000).toISOString();
 
@@ -1011,7 +1011,7 @@ describe('Batch operations', () => {
 
     const response = await request(app)
       .post('/sync/batch')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .send(operations);
 
     expect(response.status).toBe(200);
@@ -1048,12 +1048,12 @@ describe('Batch operations', () => {
   });
 
   it('succeeds with empty batch', async () => {
-    const { token, id } = user1;
+    const { accessToken, id } = user1;
     (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
 
     const response = await request(app)
       .post('/sync/batch')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .send([]);
 
     expect(response.status).toBe(200);

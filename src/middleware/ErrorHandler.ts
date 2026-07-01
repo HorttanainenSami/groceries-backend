@@ -41,7 +41,10 @@ const errorHandler = (error: Error) => {
     return { status_code: error.statusCode || 400, message: 'Invalid token provided' };
   } else if (error instanceof AuthenticationError) {
     console.error('Invalid username or password:', error);
-    return { status_code: error.statusCode || 401, message: 'Invalid username or password' };
+    return {
+      status_code: error.statusCode || 401,
+      message: error.message ?? 'Invalid username or password',
+    };
   } else if (error instanceof DatabaseError) {
     const dbError = parseMessageFromErrorCode(error.databaseError);
     console.log(dbError);

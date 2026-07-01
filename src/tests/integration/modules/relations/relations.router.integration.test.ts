@@ -82,13 +82,13 @@ describe('POST /relations/share', () => {
       expect(response.body.error).toBe('Access Token Required');
     });
     it('should have user in database', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       const { name: name1 } = TEST_USERS[0];
       const { name: name2 } = TEST_USERS[1];
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const response = await request(app)
         .get('/user/search?name=')
-        .set('Authorization', 'Bearer ' + token)
+        .set('Authorization', 'Bearer ' + accessToken)
         .send();
       expect(response.status).toBe(200);
       expect(response.body).toEqual([
@@ -105,12 +105,12 @@ describe('POST /relations/share', () => {
   });
   describe('user with permission', () => {
     it('should create relations and share them with a user', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
 
       const response = await request(app)
         .post('/relations/share')
-        .set('Authorization', 'Bearer ' + token)
+        .set('Authorization', 'Bearer ' + accessToken)
         .send({
           task_relations: [relations],
           user_shared_with: user2.id,
@@ -132,13 +132,13 @@ describe('POST /relations/share', () => {
       ]);
     });
     it('should not create relations when user doesnt exist', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
       const user_id_not_exist = '10000000-0000-0000-0000-000000000001';
 
       const response_1 = await request(app)
         .post('/relations/share')
-        .set('Authorization', 'Bearer ' + token)
+        .set('Authorization', 'Bearer ' + accessToken)
         .send({
           task_relations: [relations],
           user_shared_with: user_id_not_exist,
@@ -148,7 +148,7 @@ describe('POST /relations/share', () => {
 
       const response_2 = await request(app)
         .post('/relations/share')
-        .set('Authorization', 'Bearer ' + token)
+        .set('Authorization', 'Bearer ' + accessToken)
         .send({
           task_relations: [relations],
           user_shared_with: user2.id,
@@ -180,19 +180,19 @@ describe('GET /relations', () => {
   });
   describe('user with permission', () => {
     it('should get all relations for the user', async () => {
-      const { token, id } = user1;
+      const { accessToken, id } = user1;
       (decodeTokenFromRequest as jest.Mock).mockReturnValue({ id });
 
       const response_1 = await request(app)
         .get('/relations')
-        .set('Authorization', 'Bearer ' + token);
+        .set('Authorization', 'Bearer ' + accessToken);
       expect(response_1.status).toBe(200);
 
       expect(response_1.body.length).toEqual(3);
 
       const response_2 = await request(app)
         .post('/relations/share')
-        .set('Authorization', 'Bearer ' + token)
+        .set('Authorization', 'Bearer ' + accessToken)
         .send({
           task_relations: [relations],
           user_shared_with: user2.id,
@@ -202,7 +202,7 @@ describe('GET /relations', () => {
 
       const response_3 = await request(app)
         .get('/relations')
-        .set('Authorization', 'Bearer ' + token);
+        .set('Authorization', 'Bearer ' + accessToken);
       expect(response_3.status).toBe(200);
 
       expect(response_3.body.length).toEqual(4);
